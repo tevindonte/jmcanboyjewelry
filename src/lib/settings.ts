@@ -1,6 +1,14 @@
-import { createAdminClient } from './supabase/admin';
-import type { SiteMode } from './site.config';
 import { pricing } from './pricing.config';
+import type { SiteMode } from './site.config';
+import {
+  getAllSettings,
+  setSetting,
+  listDocs,
+  col,
+  Query,
+  createDoc,
+  findOne,
+} from './db';
 
 export type AppSettings = {
   site_mode: SiteMode;
@@ -18,11 +26,7 @@ const defaults: AppSettings = {
 
 export async function getSettings(): Promise<AppSettings> {
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase.from('settings').select('key, value');
-    if (error || !data) return defaults;
-
-    const map = Object.fromEntries(data.map((r) => [r.key, r.value]));
+    const map = await getAllSettings();
     return {
       site_mode: (map.site_mode as SiteMode) ?? defaults.site_mode,
       site_public:
@@ -42,18 +46,12 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function setSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
-  const supabase = createAdminClient();
   for (const [key, value] of Object.entries(partial)) {
-    await supabase.from('settings').upsert({
-      key,
-      value,
-      updated_at: new Date().toISOString(),
-    });
+    await setSetting(key, value);
   }
   return getSettings();
 }
 
-/** Founding slots from deposit-paid+ founding-tier orders only (not friend). */
 export async function getFoundingSlotsRemaining(): Promise<{
   remaining: number;
   total: number;
@@ -61,15 +59,13 @@ export async function getFoundingSlotsRemaining(): Promise<{
   const settings = await getSettings();
   const total = settings.founding_slots_total;
   try {
-    const supabase = createAdminClient();
-    const { count } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('tier', 'founding')
-      .neq('status', 'pending_deposit')
-      .neq('status', 'cancelled')
-      .neq('status', 'refunded');
-    const used = count ?? 0;
+    const { total: used } = await listDocs(col.orders, [
+      Query.equal('tier', 'founding'),
+      Query.notEqual('status', 'pending_deposit'),
+      Query.notEqual('status', 'cancelled'),
+      Query.notEqual('status', 'refunded'),
+      Query.limit(1),
+    ]);
     return { remaining: Math.max(0, total - used), total };
   } catch {
     return { remaining: total, total };
@@ -87,20 +83,25 @@ export async function getLatestSpot(): Promise<{
   source: string;
 } | null> {
   try {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from('spot_prices')
-      .select('usd_per_oz, fetched_at, source')
-      .order('fetched_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!data) return null;
+    const doc = await findOne(col.spotPrices, [
+      Query.orderDesc('$createdAt'),
+      Query.limit(1),
+    ]);
+    if (!doc) return null;
     return {
-      usd_per_oz: Number(data.usd_per_oz),
-      fetched_at: data.fetched_at,
-      source: data.source,
+      usd_per_oz: Number(doc.usd_per_oz),
+      fetched_at: String(doc.$createdAt ?? doc.fetched_at ?? ''),
+      source: String(doc.source ?? 'manual'),
     };
   } catch {
     return null;
   }
+}
+
+export async function recordSpot(usdPerOz: number, source: string) {
+  await createDoc(col.spotPrices, {
+    usd_per_oz: usdPerOz,
+    source,
+    fetched_at: new Date().toISOString(),
+  });
 }

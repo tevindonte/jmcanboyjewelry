@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { getSettings, setSettings } from '@/lib/settings';
+import { getSettings, setSettings, recordSpot } from '@/lib/settings';
 import { shouldRepriceAppliedSpot } from '@/lib/pricing';
 import { pricing } from '@/lib/pricing.config';
 import { getMetalsProvider } from '@/lib/metals/provider';
 
-/**
- * Optional spot fetch — not required for free Render.
- * Prefer Admin → Pricing → manual spot entry (weekly is enough).
- * Call this only if you wire a provider + a scheduler (GitHub Action, etc.).
- */
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
@@ -41,11 +35,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid provider response' }, { status: 502 });
   }
 
-  const supabase = createAdminClient();
-  await supabase.from('spot_prices').insert({
-    usd_per_oz: quote.usdPerOz,
-    source: quote.source,
-  });
+  await recordSpot(quote.usdPerOz, quote.source);
 
   const settings = await getSettings();
   let applied = settings.applied_spot;

@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { orderStatusSchema } from '@/lib/validations';
 import { estimateOrderCost, type TeethMap } from '@/lib/pricing';
 import { getSettings } from '@/lib/settings';
 import { sendMoldReviewResult } from '@/lib/email';
+import { createAdminClient } from '@/lib/appwrite/admin';
+import {
+  getDoc,
+  listDocs,
+  updateDoc,
+  createDoc,
+  deleteDoc,
+  col,
+  Query,
+  APPWRITE,
+} from '@/lib/db';
 
 export async function GET(
   _request: Request,
@@ -15,55 +25,71 @@ export async function GET(
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
 
   const { id } = await params;
-  const supabase = createAdminClient();
   const settings = await getSettings();
-
-  const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
+  const order = await getDoc(col.orders, id);
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const { data: design } = await supabase
-    .from('designs')
-    .select('*')
-    .eq('id', order.design_id)
-    .single();
+  const designDoc = await getDoc(col.designs, String(order.design_id));
+  const teeth = designDoc
+    ? (JSON.parse(String(designDoc.teeth_json ?? '{}')) as TeethMap)
+    : {};
 
-  const { data: events } = await supabase
-    .from('order_events')
-    .select('*')
-    .eq('order_id', id)
-    .order('created_at', { ascending: true });
+  const { documents: events } = await listDocs(col.orderEvents, [
+    Query.equal('order_id', id),
+    Query.orderAsc('$createdAt'),
+    Query.limit(200),
+  ]);
 
-  const { data: photos } = await supabase
-    .from('mold_photos')
-    .select('*')
-    .eq('order_id', id)
-    .order('created_at', { ascending: true });
+  const { documents: photos } = await listDocs(col.moldPhotos, [
+    Query.equal('order_id', id),
+    Query.orderAsc('$createdAt'),
+    Query.limit(20),
+  ]);
 
-  const signed = [];
-  for (const photo of photos ?? []) {
-    const { data: signedUrl } = await supabase.storage
-      .from('mold-photos')
-      .createSignedUrl(photo.storage_path, 60 * 10);
-    signed.push({ ...photo, url: signedUrl?.signedUrl ?? null });
-  }
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const signed = photos.map((photo) => ({
+    id: photo.$id,
+    status: photo.status,
+    reviewer_note: photo.reviewer_note || null,
+    storage_path: photo.storage_path,
+    url: `${base}/api/admin/photos/${photo.storage_path}`,
+  }));
 
-  const snapSpot =
-    (order.price_snapshot as { appliedSpot?: number } | null)?.appliedSpot ??
-    settings.applied_spot;
+  const snap = order.price_snapshot_json
+    ? (JSON.parse(String(order.price_snapshot_json)) as { appliedSpot?: number })
+    : null;
+  const snapSpot = snap?.appliedSpot ?? settings.applied_spot;
 
-  const cost = design
+  const cost = designDoc
     ? estimateOrderCost(
-        design.teeth as TeethMap,
-        order.fulfillment,
+        teeth,
+        order.fulfillment as 'kit_mail' | 'local_impression',
         snapSpot,
-        order.total_cents,
+        Number(order.total_cents),
       )
     : null;
 
   return NextResponse.json({
-    order,
-    design,
-    events: events ?? [],
+    order: {
+      ...order,
+      id: order.$id,
+      media_consent_at: order.media_consent_at || null,
+      tracking_number: order.tracking_number || null,
+      price_snapshot: snap,
+    },
+    design: designDoc
+      ? {
+          id: designDoc.$id,
+          arch: designDoc.arch,
+          teeth,
+          email: designDoc.email,
+        }
+      : null,
+    events: events.map((e) => ({
+      type: e.type,
+      note: e.note || null,
+      created_at: e.$createdAt,
+    })),
     photos: signed,
     cost,
     marginCents: cost?.marginCents ?? null,
@@ -76,7 +102,6 @@ const patchSchema = z.object({
   note: z.string().max(2000).optional(),
   markBalancePaidInPerson: z.boolean().optional(),
   deleteCustomerData: z.boolean().optional(),
-  /** Waive founding media consent requirement (admin). */
   waiveMediaConsent: z.boolean().optional(),
 });
 
@@ -94,33 +119,44 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
+  const order = await getDoc(col.orders, id);
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   if (parsed.data.deleteCustomerData) {
-    const { data: photos } = await supabase
-      .from('mold_photos')
-      .select('storage_path')
-      .eq('order_id', id);
-    for (const p of photos ?? []) {
-      await supabase.storage.from('mold-photos').remove([p.storage_path]);
+    const { storage } = createAdminClient();
+    const { documents: photos } = await listDocs(col.moldPhotos, [
+      Query.equal('order_id', id),
+      Query.limit(50),
+    ]);
+    for (const p of photos) {
+      try {
+        await storage.deleteFile(APPWRITE.bucketMoldPhotos, String(p.storage_path));
+      } catch {
+        /* ignore */
+      }
+      await deleteDoc(col.moldPhotos, p.$id);
     }
-    await supabase.from('mold_photos').delete().eq('order_id', id);
-    await supabase.from('order_events').delete().eq('order_id', id);
-    await supabase.from('orders').delete().eq('id', id);
+    const { documents: events } = await listDocs(col.orderEvents, [
+      Query.equal('order_id', id),
+      Query.limit(500),
+    ]);
+    for (const e of events) await deleteDoc(col.orderEvents, e.$id);
+    await deleteDoc(col.orders, id);
     if (order.design_id) {
-      await supabase.from('designs').delete().eq('id', order.design_id);
+      try {
+        await deleteDoc(col.designs, String(order.design_id));
+      } catch {
+        /* ignore */
+      }
     }
     return NextResponse.json({ deleted: true });
   }
 
   if (parsed.data.waiveMediaConsent) {
-    await supabase
-      .from('orders')
-      .update({ media_consent_at: new Date().toISOString() })
-      .eq('id', id);
-    await supabase.from('order_events').insert({
+    await updateDoc(col.orders, id, {
+      media_consent_at: new Date().toISOString(),
+    });
+    await createDoc(col.orderEvents, {
       order_id: id,
       type: 'media_consent_waived',
       note: parsed.data.note ?? 'Admin waived media consent',
@@ -132,8 +168,8 @@ export async function PATCH(
     if (!parsed.data.note?.trim()) {
       return NextResponse.json({ error: 'Note required' }, { status: 400 });
     }
-    await supabase.from('orders').update({ status: 'balance_paid' }).eq('id', id);
-    await supabase.from('order_events').insert({
+    await updateDoc(col.orders, id, { status: 'balance_paid' });
+    await createDoc(col.orderEvents, {
       order_id: id,
       type: 'balance_paid_in_person',
       note: parsed.data.note,
@@ -144,18 +180,15 @@ export async function PATCH(
   const updates: Record<string, unknown> = {};
   if (parsed.data.status) updates.status = parsed.data.status;
   if (parsed.data.tracking_number !== undefined) {
-    updates.tracking_number = parsed.data.tracking_number;
+    updates.tracking_number = parsed.data.tracking_number ?? '';
   }
-
-  if (Object.keys(updates).length) {
-    await supabase.from('orders').update(updates).eq('id', id);
-  }
+  if (Object.keys(updates).length) await updateDoc(col.orders, id, updates);
 
   if (parsed.data.status) {
-    await supabase.from('order_events').insert({
+    await createDoc(col.orderEvents, {
       order_id: id,
       type: parsed.data.status,
-      note: parsed.data.note ?? null,
+      note: parsed.data.note ?? '',
     });
   }
 
@@ -163,7 +196,7 @@ export async function PATCH(
 }
 
 const photoReviewSchema = z.object({
-  photoId: z.string().uuid(),
+  photoId: z.string().min(1),
   status: z.enum(['approved', 'rejected']),
   note: z.string().max(2000).optional(),
 });
@@ -182,35 +215,30 @@ export async function PUT(
     return NextResponse.json({ error: 'Invalid' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
+  const order = await getDoc(col.orders, id);
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  await supabase
-    .from('mold_photos')
-    .update({
-      status: parsed.data.status,
-      reviewer_note: parsed.data.note ?? null,
-    })
-    .eq('id', parsed.data.photoId)
-    .eq('order_id', id);
+  await updateDoc(col.moldPhotos, parsed.data.photoId, {
+    status: parsed.data.status,
+    reviewer_note: parsed.data.note ?? '',
+  });
 
   if (parsed.data.status === 'approved') {
-    await supabase.from('orders').update({ status: 'mold_photos_approved' }).eq('id', id);
-    await supabase.from('order_events').insert({
+    await updateDoc(col.orders, id, { status: 'mold_photos_approved' });
+    await createDoc(col.orderEvents, {
       order_id: id,
       type: 'mold_photos_approved',
-      note: parsed.data.note ?? null,
+      note: parsed.data.note ?? '',
     });
   }
 
   try {
     await sendMoldReviewResult({
-      to: order.email,
-      name: order.name,
+      to: String(order.email),
+      name: String(order.name),
       approved: parsed.data.status === 'approved',
       note: parsed.data.note,
-      accessToken: order.access_token,
+      accessToken: String(order.access_token),
     });
   } catch (e) {
     console.error(e);

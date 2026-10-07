@@ -1,0 +1,42 @@
+# Render Blueprint — https://dashboard.render.com/blueprints
+# Free web services sleep when idle; cold starts are normal.
+services:
+  - type: web
+    name: jmcanboyjewelry
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /coming-soon
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: PREVIEW_TOKEN
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: NEXT_PUBLIC_APPWRITE_ENDPOINT
+        sync: false
+      - key: NEXT_PUBLIC_APPWRITE_PROJECT_ID
+        sync: false
+      - key: APPWRITE_API_KEY
+        sync: false
+      - key: APPWRITE_DATABASE_ID
+        value: jmcanboy
+      - key: APPWRITE_BUCKET_MOLD_PHOTOS
+        value: mold-photos
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true

@@ -1,0 +1,125 @@
+# Appwrite setup (JMCANBOY Jewelry)
+
+Use [Appwrite Cloud](https://cloud.appwrite.io) or self-hosted. Create a project, then:
+
+## 1. API key
+
+Overview → Integrations → API keys. Scopes:
+
+- `databases.read`, `databases.write`
+- `collections.read`, `collections.write` (or tables equivalents if your console uses Tables)
+- `documents.read`, `documents.write`
+- `files.read`, `files.write`
+- `sessions.write`, `users.read`
+
+## 2. Database
+
+Create database with ID: `jmcanboy` (or set `APPWRITE_DATABASE_ID`).
+
+### Collections (document IDs = collection IDs below)
+
+Permissions: **no public access** — only the API key (server) reads/writes.
+
+#### `settings`
+| Attr | Type | Required |
+|---|---|---|
+| value_json | string (size 4096) | yes |
+
+Seed documents (custom IDs):
+
+| Document ID | value_json |
+|---|---|
+| site_mode | `"waitlist"` |
+| site_public | `false` |
+| founding_slots_total | `5` |
+| applied_spot | `61.19` |
+
+#### `waitlist_entries`
+| Attr | Type | Indexes |
+|---|---|---|
+| email | string 254, unique | unique |
+| name | string 120 | |
+| phone | string 40 | |
+| referral_code | string 32, unique | unique |
+| referred_by | string 32 | key |
+| unsubscribe_token | string 64, unique | unique |
+| unsubscribed_at | string 40, optional | |
+| notified_at | string 40, optional | |
+
+#### `designs`
+| Attr | Type |
+|---|---|
+| email | string 254 |
+| arch | string 16 (`top`/`bottom`/`both`) |
+| teeth_json | string 16000 |
+| estimate_cents | integer |
+
+#### `orders`
+| Attr | Type | Indexes |
+|---|---|---|
+| access_token | string 64, unique | unique |
+| design_id | string 36 | key |
+| email | string 254 | key |
+| name | string 120 | |
+| phone | string 40 | |
+| fulfillment | string 32 | |
+| status | string 40 | key |
+| tier | string 16 | key |
+| price_override_cents | integer | |
+| media_consent_at | string 40 | |
+| total_cents | integer | |
+| deposit_cents | integer | |
+| balance_cents | integer | |
+| stripe_deposit_session_id | string 128 | |
+| stripe_balance_session_id | string 128 | |
+| price_snapshot_json | string 16000 | |
+| terms_version | string 40 | |
+| terms_accepted_at | string 40 | |
+| terms_accepted_ip | string 64 | |
+| shipping_address_json | string 2000 | |
+| tracking_number | string 120 | |
+
+#### `order_events`
+| Attr | Type | Indexes |
+|---|---|---|
+| order_id | string 36 | key |
+| type | string 64 | |
+| note | string 2000 | |
+
+#### `mold_photos`
+| Attr | Type | Indexes |
+|---|---|---|
+| order_id | string 36 | key |
+| storage_path | string 64 | |
+| status | string 16 | |
+| reviewer_note | string 2000 | |
+
+#### `stripe_webhook_events`
+| Attr | Type |
+|---|---|
+| type | string 128 | |
+
+Use Stripe event id as the document `$id` for idempotency.
+
+#### `spot_prices`
+| Attr | Type |
+|---|---|
+| usd_per_oz | float |
+| source | string 64 |
+| fetched_at | string 40 |
+
+## 3. Storage bucket
+
+Create bucket ID: `mold-photos`  
+- **File security**: enabled  
+- **Permissions**: none for guests (server API key only)  
+- Max file size: 10 MB  
+- Allowed: `image/jpeg`, `image/png`, `image/webp`, `image/heic`
+
+## 4. Admin user
+
+Auth → Users → create user with email = `ADMIN_EMAIL` and a strong password. Use that to sign in at `/admin/login`.
+
+## 5. Env vars
+
+See `.env.example` (`NEXT_PUBLIC_APPWRITE_*`, `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`).

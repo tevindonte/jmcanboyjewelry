@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { listDocs, col, Query } from '@/lib/db';
 import { orderStatusSchema } from '@/lib/validations';
 
 export async function GET(request: Request) {
@@ -9,24 +9,32 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
-  const supabase = createAdminClient();
-
-  let query = supabase
-    .from('orders')
-    .select(
-      'id, email, name, status, tier, total_cents, deposit_cents, balance_cents, fulfillment, created_at, tracking_number',
-    )
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const queries = [Query.orderDesc('$createdAt'), Query.limit(200)];
 
   if (status) {
     const parsed = orderStatusSchema.safeParse(status);
-    if (parsed.success) query = query.eq('status', parsed.data);
+    if (parsed.success) queries.unshift(Query.equal('status', parsed.data));
   }
 
-  const { data, error } = await query;
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const { documents } = await listDocs(col.orders, queries);
+    return NextResponse.json({
+      orders: documents.map((o) => ({
+        id: o.$id,
+        email: o.email,
+        name: o.name,
+        status: o.status,
+        tier: o.tier,
+        total_cents: o.total_cents,
+        deposit_cents: o.deposit_cents,
+        balance_cents: o.balance_cents,
+        fulfillment: o.fulfillment,
+        created_at: o.$createdAt,
+        tracking_number: o.tracking_number || null,
+      })),
+    });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 });
   }
-  return NextResponse.json({ orders: data });
 }

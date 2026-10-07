@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { listDocs, col, Query } from '@/lib/db';
 
 function csvEscape(v: unknown): string {
   const s = v == null ? '' : String(v);
@@ -12,11 +12,10 @@ export async function GET() {
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
 
-  const supabase = createAdminClient();
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { documents: orders } = await listDocs(col.orders, [
+    Query.orderDesc('$createdAt'),
+    Query.limit(5000),
+  ]);
 
   const headers = [
     'id',
@@ -25,7 +24,7 @@ export async function GET() {
     'phone',
     'status',
     'fulfillment',
-    'founding',
+    'tier',
     'total_cents',
     'deposit_cents',
     'balance_cents',
@@ -34,8 +33,22 @@ export async function GET() {
   ];
 
   const lines = [headers.join(',')];
-  for (const o of orders ?? []) {
-    lines.push(headers.map((h) => csvEscape((o as Record<string, unknown>)[h])).join(','));
+  for (const o of orders) {
+    const row = {
+      id: o.$id,
+      email: o.email,
+      name: o.name,
+      phone: o.phone,
+      status: o.status,
+      fulfillment: o.fulfillment,
+      tier: o.tier,
+      total_cents: o.total_cents,
+      deposit_cents: o.deposit_cents,
+      balance_cents: o.balance_cents,
+      tracking_number: o.tracking_number,
+      created_at: o.$createdAt,
+    };
+    lines.push(headers.map((h) => csvEscape((row as Record<string, unknown>)[h])).join(','));
   }
 
   return new NextResponse(lines.join('\n'), {

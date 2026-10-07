@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { InputFile } from 'node-appwrite/file';
 import { siteConfig } from '@/lib/site.config';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { createAdminClient, ID } from '@/lib/appwrite/admin';
+import {
+  findOne,
+  listDocs,
+  createDoc,
+  updateDoc,
+  col,
+  Query,
+  APPWRITE,
+} from '@/lib/db';
 
 export async function POST(
   request: Request,
@@ -14,14 +24,7 @@ export async function POST(
   }
 
   const { token } = await params;
-  const supabase = createAdminClient();
-
-  const { data: order } = await supabase
-    .from('orders')
-    .select('id, status')
-    .eq('access_token', token)
-    .single();
-
+  const order = await findOne(col.orders, [Query.equal('access_token', token)]);
   if (!order) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
@@ -30,12 +33,12 @@ export async function POST(
     return NextResponse.json({ error: 'Deposit required first' }, { status: 400 });
   }
 
-  const { count } = await supabase
-    .from('mold_photos')
-    .select('*', { count: 'exact', head: true })
-    .eq('order_id', order.id);
+  const { total: count } = await listDocs(col.moldPhotos, [
+    Query.equal('order_id', order.$id),
+    Query.limit(1),
+  ]);
 
-  if ((count ?? 0) >= siteConfig.moldPhotoCount) {
+  if (count >= siteConfig.moldPhotoCount) {
     return NextResponse.json(
       { error: `Max ${siteConfig.moldPhotoCount} photos` },
       { status: 400 },
@@ -61,45 +64,36 @@ export async function POST(
     return NextResponse.json({ error: 'Images only' }, { status: 400 });
   }
 
-  const ext = mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-  const path = `${order.id}/${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  try {
+    const { storage } = createAdminClient();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileId = ID.unique();
+    const input = InputFile.fromBuffer(buffer, file.name || `${fileId}.jpg`);
 
-  const { error: uploadError } = await supabase.storage
-    .from('mold-photos')
-    .upload(path, buffer, { contentType: mime, upsert: false });
+    await storage.createFile(APPWRITE.bucketMoldPhotos, fileId, input);
 
-  if (uploadError) {
-    console.error(uploadError);
+    const photo = await createDoc(col.moldPhotos, {
+      order_id: order.$id,
+      storage_path: fileId,
+      status: 'pending',
+      reviewer_note: '',
+    });
+
+    const newCount = count + 1;
+    if (newCount >= siteConfig.moldPhotoCount && order.status === 'deposit_paid') {
+      await updateDoc(col.orders, order.$id, { status: 'mold_photos_pending' });
+      await createDoc(col.orderEvents, {
+        order_id: order.$id,
+        type: 'mold_photos_pending',
+        note: 'Customer uploaded mold photos',
+      });
+    }
+
+    return NextResponse.json({
+      photo: { id: photo.$id, status: photo.status, created_at: photo.$createdAt },
+    });
+  } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
-
-  const { data: photo, error } = await supabase
-    .from('mold_photos')
-    .insert({
-      order_id: order.id,
-      storage_path: path,
-      status: 'pending',
-    })
-    .select('id, status, created_at')
-    .single();
-
-  if (error || !photo) {
-    return NextResponse.json({ error: 'Could not save photo' }, { status: 500 });
-  }
-
-  const newCount = (count ?? 0) + 1;
-  if (newCount >= siteConfig.moldPhotoCount && order.status === 'deposit_paid') {
-    await supabase
-      .from('orders')
-      .update({ status: 'mold_photos_pending' })
-      .eq('id', order.id);
-    await supabase.from('order_events').insert({
-      order_id: order.id,
-      type: 'mold_photos_pending',
-      note: 'Customer uploaded mold photos',
-    });
-  }
-
-  return NextResponse.json({ photo });
 }

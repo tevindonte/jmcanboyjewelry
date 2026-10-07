@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { getLatestSpot, getSettings, setSettings } from '@/lib/settings';
+import { getLatestSpot, getSettings, setSettings, recordSpot } from '@/lib/settings';
 import { pendingAdjustments, formatUsd } from '@/lib/pricing';
 import { pricing } from '@/lib/pricing.config';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { getMetalsProvider } from '@/lib/metals/provider';
 
 export async function GET() {
@@ -39,10 +38,8 @@ export async function GET() {
 }
 
 const applySchema = z.object({
-  /** Manual spot entry — primary path on free hosting. */
   spot: z.number().positive().optional(),
   useLatest: z.boolean().optional(),
-  /** Also set applied_spot to this value (default true when spot provided). */
   applyNow: z.boolean().optional(),
 });
 
@@ -56,9 +53,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
   let spot = parsed.data.spot;
-
   if (parsed.data.useLatest && spot == null) {
     const latest = await getLatestSpot();
     if (!latest) {
@@ -71,10 +66,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Provide spot or useLatest' }, { status: 400 });
   }
 
-  await supabase.from('spot_prices').insert({
-    usd_per_oz: spot,
-    source: parsed.data.spot != null ? 'admin_manual' : 'admin_apply_latest',
-  });
+  await recordSpot(
+    spot,
+    parsed.data.spot != null ? 'admin_manual' : 'admin_apply_latest',
+  );
 
   const applyNow = parsed.data.applyNow !== false;
   let applied = (await getSettings()).applied_spot;

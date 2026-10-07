@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { getSettings, getFoundingSlotsRemaining, resolvePublicTier } from '@/lib/settings';
 import { calculateEstimate, formatCents, type TeethMap } from '@/lib/pricing';
 import type { ArchChoice } from '@/lib/pricing.config';
 import { DesignReadonly } from '@/components/DesignReadonly';
+import { getDoc, col } from '@/lib/db';
 
 export const metadata = { title: 'Design' };
 
@@ -16,16 +16,16 @@ export default async function DesignSharePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createAdminClient();
-  const { data: design } = await supabase.from('designs').select('*').eq('id', id).single();
+  const design = await getDoc(col.designs, id);
   if (!design) notFound();
 
+  const teeth = JSON.parse(String(design.teeth_json ?? '{}')) as TeethMap;
   const settings = await getSettings();
   const founding = await getFoundingSlotsRemaining();
   const tier = await resolvePublicTier();
   const estimate = calculateEstimate({
     arch: design.arch as ArchChoice,
-    teeth: design.teeth as TeethMap,
+    teeth,
     fulfillment: 'local_impression',
     tier,
     appliedSpot: settings.applied_spot,
@@ -33,8 +33,8 @@ export default async function DesignSharePage({
 
   const cta =
     settings.site_mode === 'preorder'
-      ? { href: `/checkout?design=${design.id}`, label: 'Reserve this design' }
-      : { href: `/waitlist?design=${design.id}`, label: 'Join waitlist' };
+      ? { href: `/checkout?design=${design.$id}`, label: 'Reserve this design' }
+      : { href: `/waitlist?design=${design.$id}`, label: 'Join waitlist' };
 
   return (
     <>
@@ -63,7 +63,7 @@ export default async function DesignSharePage({
             </span>
           )}
         </p>
-        <DesignReadonly arch={design.arch as ArchChoice} teeth={design.teeth as TeethMap} />
+        <DesignReadonly arch={design.arch as ArchChoice} teeth={teeth} />
         <p className="mt-4 text-xs text-steel">
           This is a style preview, not your actual teeth. Fit comes from your mold.
         </p>

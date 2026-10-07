@@ -1,46 +1,63 @@
 # JMCANBOY Jewelry
 
-Custom sterling silver grillz — Next.js App Router, Three.js builder, Supabase, Stripe, Resend.
+Custom sterling silver grillz — Next.js + Appwrite + Stripe + Resend.
 
-Domain: **jmcanboyjewelry.com** · Brand: **JMCANBOY Jewelry**
+Domain: **jmcanboyjewelry.com**
 
-## Setup
+## Stack
 
-1. Copy `.env.example` → `.env.local` and fill keys.
-2. Database:
-   - Existing DB (even empty-ish from an older migrate): run `supabase/migrations/002_pricing_tiers.sql`
-   - Brand-new project: `001_initial.sql` then `supabase/storage.sql`
-3. Create a **private** Storage bucket named `mold-photos` (or run `storage.sql`).
-4. Create one Supabase Auth user whose email matches `ADMIN_EMAIL`.
-5. `npm install && npm run dev`
-6. While `site_public` is false, open with `?preview=YOUR_PREVIEW_TOKEN` (sets a cookie).
+- Next.js (App Router) + TypeScript + Tailwind
+- three.js (`@react-three/fiber` / `drei`)
+- **Appwrite** — DB, Auth (admin), private Storage
+- Stripe Checkout + webhooks
+- Resend email
+- Deploy on **Render** (free tier OK)
 
-## Silver spot (free Render)
+## Local setup
 
-Free Render has no reliable cron. **Primary path:** Admin → Pricing → type $/oz weekly and hit Save & apply.
+1. Copy `.env.example` → `.env.local` and fill values.
+2. Follow **[appwrite/SETUP.md](appwrite/SETUP.md)** (database, collections, bucket, admin user).
+3. `npm install && npm run dev`
+4. While private: open `http://localhost:3000/?preview=YOUR_PREVIEW_TOKEN`
 
-Optional later: set `METALS_API_*` and hit `/api/cron/spot` from any scheduler (GitHub Action, etc.). Not required — a $20 spot move is only ~$1.50/tooth.
+## Deploy on Render (free)
+
+Free web services **sleep when idle** — first hit after sleep is slow. No cron on free; enter silver spot in Admin → Pricing weekly.
+
+### Option A — Blueprint
+
+1. Push this repo to GitHub (already: `tevindonte/jmcanboyjewelry`).
+2. [Render Dashboard](https://dashboard.render.com) → New → Blueprint → connect the repo (`render.yaml`).
+3. Fill env vars marked `sync: false` (Appwrite, Stripe, Resend, `NEXT_PUBLIC_SITE_URL`, `PREVIEW_TOKEN`, `ADMIN_EMAIL`).
+4. Deploy. Point `NEXT_PUBLIC_SITE_URL` at your `*.onrender.com` URL (or custom domain later).
+5. Stripe webhook → `https://YOUR-SERVICE.onrender.com/api/webhooks/stripe`
+
+### Option B — Manual web service
+
+1. New → Web Service → this repo  
+2. **Build:** `npm ci && npm run build`  
+3. **Start:** `npm run start`  
+4. **Node:** 22  
+5. Add the same env vars as `.env.example`
+
+### After deploy
+
+1. Open `https://YOUR-SERVICE.onrender.com/?preview=PREVIEW_TOKEN`
+2. `/admin/login` with the Appwrite user matching `ADMIN_EMAIL`
+3. When ready: Admin → toggle `site_public`
 
 ## Confirmed pricing
 
-- Per tooth: $50 plain / $55 window / $60 deep cut
-- Founding: first 5 paying public clients, 15% off
-- Minimum order: $150 (after founding discount)
-- Kit fee: $30 mail-only, in the deposit, credited so total = grill price; non-refundable once shipped
-- Reference spot: $61.19/oz
+$50 / $55 / $60 · founding 5 @ 15% · min $150 · kit $30 (credited) · spot ref $61.19
 
 ## Scripts
 
-- `npm run dev` / `npm run build` / `npm test` / `npm run lint`
+`npm run dev` · `npm run build` · `npm test` · `npm run lint`
 
-## Swap the real GLB
+## GLB swap
 
 ```ts
 // src/lib/model.config.ts
 modelUrl: '/models/jmcanboy-arch.glb',
 usePlaceholder: false,
 ```
-
-## Still TODO(owner)
-
-Grams per tooth, real foundry quote, metals API pick (optional), socials/TikTok/video, remake/refund policy, legal review, NY impression rules.

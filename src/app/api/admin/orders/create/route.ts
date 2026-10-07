@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { adminCreateOrderSchema } from '@/lib/validations';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { calculateEstimate } from '@/lib/pricing';
-import { getSettings } from '@/lib/settings';
+import { getSettings, getFoundingSlotsRemaining } from '@/lib/settings';
 import { generateAccessToken } from '@/lib/referral';
 import { siteConfig } from '@/lib/site.config';
 import { clientIp } from '@/lib/rate-limit';
+import { createDoc, col } from '@/lib/db';
 
-/**
- * Admin-created friend / in-person orders.
- * Friend tier never consumes founding slots.
- */
 export async function POST(request: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -19,14 +15,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = adminCreateOrderSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid order', details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid order' }, { status: 400 });
   }
 
   const data = parsed.data;
   if ((data.markDepositPaid || data.markBalancePaid) && !data.note.trim()) {
     return NextResponse.json({ error: 'Note required when marking paid' }, { status: 400 });
   }
-
   if (data.tier === 'friend' && data.priceOverrideCents == null) {
     return NextResponse.json(
       { error: 'Friend orders need a manual price (price_override_cents)' },
@@ -34,11 +29,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Public founding/standard via admin: founding only if slots remain — but friend never takes a slot
   const settings = await getSettings();
   let tier = data.tier;
   if (tier === 'founding') {
-    const { getFoundingSlotsRemaining } = await import('@/lib/settings');
     const { remaining } = await getFoundingSlotsRemaining();
     if (remaining <= 0) tier = 'standard';
   }
@@ -56,85 +49,78 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not price order' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data: design, error: designError } = await supabase
-    .from('designs')
-    .insert({
+  try {
+    const design = await createDoc(col.designs, {
       email: data.email.toLowerCase(),
       arch: data.arch,
-      teeth: data.teeth,
+      teeth_json: JSON.stringify(data.teeth),
       estimate_cents: estimate.totalCents,
-    })
-    .select('id')
-    .single();
+    });
 
-  if (designError || !design) {
-    return NextResponse.json({ error: 'Could not save design' }, { status: 500 });
-  }
+    let status = 'pending_deposit';
+    if (data.markBalancePaid) status = 'balance_paid';
+    else if (data.markDepositPaid) status = 'deposit_paid';
 
-  let status: string = 'pending_deposit';
-  if (data.markBalancePaid) status = 'balance_paid';
-  else if (data.markDepositPaid) status = 'deposit_paid';
+    const accessToken = generateAccessToken();
+    const ip = clientIp(request.headers);
 
-  const accessToken = generateAccessToken();
-  const ip = clientIp(request.headers);
-
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .insert({
+    const order = await createDoc(col.orders, {
       access_token: accessToken,
-      design_id: design.id,
+      design_id: design.$id,
       email: data.email.toLowerCase(),
       name: data.name,
-      phone: data.phone ?? null,
+      phone: data.phone ?? '',
       fulfillment: data.fulfillment,
       status,
       tier,
-      price_override_cents: data.priceOverrideCents ?? null,
+      price_override_cents: data.priceOverrideCents ?? 0,
+      media_consent_at: '',
       total_cents: estimate.totalCents,
       deposit_cents: estimate.depositCents ?? 0,
       balance_cents: estimate.balanceCents ?? 0,
-      price_snapshot: estimate.priceSnapshot,
+      stripe_deposit_session_id: '',
+      stripe_balance_session_id: '',
+      price_snapshot_json: JSON.stringify(estimate.priceSnapshot),
       terms_version: siteConfig.termsVersion,
       terms_accepted_at: new Date().toISOString(),
       terms_accepted_ip: ip,
-      shipping_address: data.shippingAddress ?? null,
-    })
-    .select('id, access_token')
-    .single();
-
-  if (orderError || !order) {
-    console.error(orderError);
-    return NextResponse.json({ error: 'Could not create order' }, { status: 500 });
-  }
-
-  await supabase.from('order_events').insert({
-    order_id: order.id,
-    type: 'admin_created',
-    note: data.note,
-  });
-
-  if (data.markDepositPaid) {
-    await supabase.from('order_events').insert({
-      order_id: order.id,
-      type: 'deposit_paid',
-      note: `In person / admin: ${data.note}`,
+      shipping_address_json: data.shippingAddress
+        ? JSON.stringify(data.shippingAddress)
+        : '',
+      tracking_number: '',
     });
-  }
-  if (data.markBalancePaid) {
-    await supabase.from('order_events').insert({
-      order_id: order.id,
-      type: 'balance_paid_in_person',
+
+    await createDoc(col.orderEvents, {
+      order_id: order.$id,
+      type: 'admin_created',
       note: data.note,
     });
-  }
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  return NextResponse.json({
-    id: order.id,
-    accessToken: order.access_token,
-    orderUrl: `${base}/order/${order.access_token}`,
-    tier,
-    totalCents: estimate.totalCents,
-  });
+    if (data.markDepositPaid) {
+      await createDoc(col.orderEvents, {
+        order_id: order.$id,
+        type: 'deposit_paid',
+        note: `In person / admin: ${data.note}`,
+      });
+    }
+    if (data.markBalancePaid) {
+      await createDoc(col.orderEvents, {
+        order_id: order.$id,
+        type: 'balance_paid_in_person',
+        note: data.note,
+      });
+    }
+
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    return NextResponse.json({
+      id: order.$id,
+      accessToken,
+      orderUrl: `${base}/order/${accessToken}`,
+      tier,
+      totalCents: estimate.totalCents,
+    });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: 'Could not create order' }, { status: 500 });
+  }
 }

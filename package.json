@@ -13,10 +13,9 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.2",
     "nanoid": "^5.1.16",
     "next": "^16.4.0",
+    "node-appwrite": "^29.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "resend": "^6.32.1",

@@ -1,42 +1,65 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { findOne, getDoc, listDocs, col, Query } from '@/lib/db';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const supabase = createAdminClient();
-
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select(
-      'id, access_token, email, name, fulfillment, status, tier, total_cents, deposit_cents, balance_cents, tracking_number, created_at, design_id',
-    )
-    .eq('access_token', token)
-    .single();
-
-  if (error || !order) {
+  const order = await findOne(col.orders, [Query.equal('access_token', token)]);
+  if (!order) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const { data: design } = await supabase
-    .from('designs')
-    .select('id, arch, teeth, estimate_cents')
-    .eq('id', order.design_id)
-    .single();
+  const designDoc = await getDoc(col.designs, String(order.design_id));
+  const design = designDoc
+    ? {
+        id: designDoc.$id,
+        arch: designDoc.arch,
+        teeth: JSON.parse(String(designDoc.teeth_json ?? '{}')),
+        estimate_cents: designDoc.estimate_cents,
+      }
+    : null;
 
-  const { data: events } = await supabase
-    .from('order_events')
-    .select('type, note, created_at')
-    .eq('order_id', order.id)
-    .order('created_at', { ascending: true });
+  const { documents: events } = await listDocs(col.orderEvents, [
+    Query.equal('order_id', order.$id),
+    Query.orderAsc('$createdAt'),
+    Query.limit(200),
+  ]);
 
-  const { data: photos } = await supabase
-    .from('mold_photos')
-    .select('id, status, reviewer_note, created_at')
-    .eq('order_id', order.id)
-    .order('created_at', { ascending: true });
+  const { documents: photos } = await listDocs(col.moldPhotos, [
+    Query.equal('order_id', order.$id),
+    Query.orderAsc('$createdAt'),
+    Query.limit(20),
+  ]);
 
-  return NextResponse.json({ order, design, events: events ?? [], photos: photos ?? [] });
+  return NextResponse.json({
+    order: {
+      id: order.$id,
+      access_token: order.access_token,
+      email: order.email,
+      name: order.name,
+      fulfillment: order.fulfillment,
+      status: order.status,
+      tier: order.tier,
+      total_cents: order.total_cents,
+      deposit_cents: order.deposit_cents,
+      balance_cents: order.balance_cents,
+      tracking_number: order.tracking_number || null,
+      created_at: order.$createdAt,
+      design_id: order.design_id,
+    },
+    design,
+    events: events.map((e) => ({
+      type: e.type,
+      note: e.note || null,
+      created_at: e.$createdAt,
+    })),
+    photos: photos.map((p) => ({
+      id: p.$id,
+      status: p.status,
+      reviewer_note: p.reviewer_note || null,
+      created_at: p.$createdAt,
+    })),
+  });
 }

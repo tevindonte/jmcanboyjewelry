@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 
 const PREVIEW_COOKIE = 'jmcanboy_preview';
 
@@ -7,21 +6,31 @@ async function isSitePublic(): Promise<boolean> {
   if (process.env.SITE_PUBLIC === 'true' || process.env.NEXT_PUBLIC_SITE_PUBLIC === 'true') {
     return true;
   }
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return false;
+
+  const endpoint =
+    process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? process.env.APPWRITE_ENDPOINT;
+  const project =
+    process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? process.env.APPWRITE_PROJECT_ID;
+  const key = process.env.APPWRITE_API_KEY;
+  const databaseId = process.env.APPWRITE_DATABASE_ID ?? 'jmcanboy';
+
+  if (!endpoint || !project || !key) return false;
 
   try {
-    const res = await fetch(`${url}/rest/v1/settings?key=eq.site_public&select=value`, {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
+    const res = await fetch(
+      `${endpoint}/databases/${databaseId}/collections/settings/documents/site_public`,
+      {
+        headers: {
+          'X-Appwrite-Project': project,
+          'X-Appwrite-Key': key,
+        },
+        next: { revalidate: 10 },
       },
-      next: { revalidate: 10 },
-    });
+    );
     if (!res.ok) return false;
-    const rows = (await res.json()) as { value: boolean }[];
-    return rows[0]?.value === true;
+    const doc = (await res.json()) as { value_json?: string };
+    if (!doc.value_json) return false;
+    return JSON.parse(doc.value_json) === true;
   } catch {
     return false;
   }
@@ -65,7 +74,6 @@ export async function middleware(request: NextRequest) {
 
   const sitePublic = await isSitePublic();
   const isComingSoon = pathname === '/coming-soon';
-  const isAdminPath = pathname.startsWith('/admin');
   const isApi = pathname.startsWith('/api');
 
   if (!sitePublic && !hasPreview) {
@@ -77,43 +85,12 @@ export async function middleware(request: NextRequest) {
     if (isApi) {
       return NextResponse.json({ error: 'Coming soon' }, { status: 403 });
     }
-    // Allow /admin only with preview — otherwise coming soon
-    if (isAdminPath) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/coming-soon';
-      url.search = '';
-      const gate = NextResponse.rewrite(url);
-      gate.headers.set('X-Robots-Tag', 'noindex, nofollow');
-      return gate;
-    }
     const url = request.nextUrl.clone();
     url.pathname = '/coming-soon';
     url.search = '';
     const gate = NextResponse.rewrite(url);
     gate.headers.set('X-Robots-Tag', 'noindex, nofollow');
     return gate;
-  }
-
-  if (isAdminPath && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-            response = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options),
-            );
-          },
-        },
-      },
-    );
-    await supabase.auth.getUser();
   }
 
   if (!sitePublic) {

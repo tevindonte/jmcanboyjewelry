@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+:root {
+  --bg: #0a0a0b;
+  --bg-elevated: #121214;
+  --bg-soft: #1a1a1e;
+  --silver: #c8ccd4;
+  --silver-bright: #e8eaef;
+  --steel: #8b909a;
+  --steel-dim: #5c616a;
+  --accent: #b8bec8;
+  --danger: #c45c5c;
+  --ok: #6a9a7a;
+  --text: #f2f3f5;
+  --text-muted: #9a9ea8;
+  --border: rgba(200, 204, 212, 0.14);
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-soft: var(--bg-soft);
+  --color-silver: var(--silver);
+  --color-silver-bright: var(--silver-bright);
+  --color-steel: var(--steel);
+  --color-steel-dim: var(--steel-dim);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(180, 190, 210, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(140, 150, 170, 0.04), transparent),
+    var(--bg);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(200, 204, 212, 0.3);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

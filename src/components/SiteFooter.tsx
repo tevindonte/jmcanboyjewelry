@@ -18,6 +18,20 @@ export function SiteFooter() {
           <p className="mt-2 max-w-xs text-sm text-text-muted">
             Custom grillz. Silver now. Gold on request. {siteConfig.location}.
           </p>
+          <p className="mt-3 space-y-1 text-sm text-text-muted">
+            <a
+              href={`mailto:${siteConfig.contactEmail}`}
+              className="block hover:text-silver"
+            >
+              {siteConfig.contactEmail}
+            </a>
+            <a
+              href={`tel:+1${siteConfig.contactPhone}`}
+              className="block hover:text-silver"
+            >
+              {siteConfig.contactPhoneDisplay}
+            </a>
+          </p>
           <p className="mt-1 text-xs text-steel-dim">{siteConfig.domain}</p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-text-muted">

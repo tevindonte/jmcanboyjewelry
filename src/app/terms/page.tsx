@@ -74,7 +74,8 @@ export default function TermsPage() {
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Contact</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
-          {siteConfig.contactEmail} · {siteConfig.location}
+          {siteConfig.contactEmail} · {siteConfig.contactPhoneDisplay} ·{' '}
+          {siteConfig.location}
         </p>
       </main>
       <SiteFooter />

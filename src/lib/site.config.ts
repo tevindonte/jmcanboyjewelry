@@ -18,16 +18,18 @@ export const siteConfig = {
     'image/heif',
   ] as const,
   socials: {
-    /** TODO(owner) */
-    tiktok: null as string | null,
-    instagram: null as string | null,
+    tiktok: 'https://www.tiktok.com/@solodatin',
+    instagram: 'https://www.instagram.com/jmcanboyjewelry',
     twitter: null as string | null,
   },
   /** TODO(owner) supply TikTok embed/video URLs */
   tiktokClips: [] as string[],
   /** TODO(owner) impression tutorial video URL */
   impressionVideoUrl: null as string | null,
-  contactEmail: 'hello@jmcanboyjewelry.com',
+  contactEmail: 'jmcanboy@gmail.com',
+  /** Google Voice business line */
+  contactPhone: '8603517405',
+  contactPhoneDisplay: '(860) 351-7405',
 } as const;
 
 export type SiteMode = 'waitlist' | 'preorder' | 'closed';

@@ -89,3 +89,99 @@ h3,
   white-space: nowrap;
   border: 0;
 }
+
+/* Soft-edge transparent 3D preview — page gradient shows through.
+   Nested Y then edge masks so the top fade isn't filled back in by the side mask. */
+.grill-canvas-mask-y {
+  background: transparent !important;
+  /* Builder: mold sits higher in the wide frame (~15–30%); pink gum from ~35%. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.4) 34%,
+    black 38%,
+    black 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.4) 34%,
+    black 38%,
+    black 88%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Homepage hero: mold/dark crest ~35–45%; pink gum from ~48%. */
+.grill-canvas-mask-y--hero {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.4) 48%,
+    black 52%,
+    black 86%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.4) 48%,
+    black 52%,
+    black 86%,
+    transparent 100%
+  );
+}
+
+.grill-canvas-mask-edge {
+  background: transparent !important;
+  height: 100%;
+  width: 100%;
+  /* Soft melt on L/R (~10%) + gentle radial so corners don't form a box edge */
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 96% 94% at 50% 54%,
+      black 58%,
+      transparent 88%
+    );
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 96% 94% at 50% 54%,
+      black 58%,
+      transparent 88%
+    );
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-size: 100% 100%, 100% 100%;
+  mask-size: 100% 100%, 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.grill-canvas-mask-y canvas,
+.grill-canvas-mask-edge canvas {
+  background: transparent !important;
+  background-color: transparent !important;
+}

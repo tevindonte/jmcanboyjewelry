@@ -1,4 +1,13 @@
-import { Client, Databases, Storage, Account, Users, ID, Query } from 'node-appwrite';
+import {
+  Client,
+  Databases,
+  TablesDB,
+  Storage,
+  Account,
+  Users,
+  ID,
+  Query,
+} from 'node-appwrite';
 
 export { ID, Query };
 
@@ -30,7 +39,9 @@ export function createAdminClient() {
 
   return {
     client,
+    /** Legacy Documents API — prefer `tables` for this project. */
     databases: new Databases(client),
+    tables: new TablesDB(client),
     storage: new Storage(client),
     account: new Account(client),
     users: new Users(client),
@@ -53,6 +64,7 @@ export function createSessionClient(sessionSecret: string) {
     client,
     account: new Account(client),
     databases: new Databases(client),
+    tables: new TablesDB(client),
     storage: new Storage(client),
   };
 }

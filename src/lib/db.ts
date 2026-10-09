@@ -1,5 +1,6 @@
 /**
- * Thin Appwrite document helpers (server / API-key only).
+ * Thin Appwrite row helpers (server / API-key only).
+ * Uses TablesDB (Cloud tables) — not the legacy Documents API.
  * Public pages never talk to Appwrite directly — only via our routes.
  */
 import { createAdminClient, ID, Query } from '@/lib/appwrite/admin';
@@ -14,22 +15,35 @@ function stripMeta(doc: Doc): Doc {
   return doc;
 }
 
+function asDoc(row: Record<string, unknown>): Doc {
+  return row as Doc;
+}
+
 export async function listDocs(
   collectionId: string,
   queries: string[] = [],
 ): Promise<{ documents: Doc[]; total: number }> {
-  const { databases } = createAdminClient();
-  const res = await databases.listDocuments(dbId(), collectionId, queries);
+  const { tables } = createAdminClient();
+  const res = await tables.listRows({
+    databaseId: dbId(),
+    tableId: collectionId,
+    queries,
+  });
   return {
-    documents: res.documents as unknown as Doc[],
+    documents: (res.rows as unknown as Doc[]).map(asDoc),
     total: res.total,
   };
 }
 
 export async function getDoc(collectionId: string, id: string): Promise<Doc | null> {
   try {
-    const { databases } = createAdminClient();
-    return (await databases.getDocument(dbId(), collectionId, id)) as unknown as Doc;
+    const { tables } = createAdminClient();
+    const row = await tables.getRow({
+      databaseId: dbId(),
+      tableId: collectionId,
+      rowId: id,
+    });
+    return asDoc(row as unknown as Record<string, unknown>);
   } catch {
     return null;
   }
@@ -40,13 +54,14 @@ export async function createDoc(
   data: Record<string, unknown>,
   id?: string,
 ): Promise<Doc> {
-  const { databases } = createAdminClient();
-  return (await databases.createDocument(
-    dbId(),
-    collectionId,
-    id ?? ID.unique(),
+  const { tables } = createAdminClient();
+  const row = await tables.createRow({
+    databaseId: dbId(),
+    tableId: collectionId,
+    rowId: id ?? ID.unique(),
     data,
-  )) as unknown as Doc;
+  });
+  return asDoc(row as unknown as Record<string, unknown>);
 }
 
 export async function updateDoc(
@@ -54,18 +69,23 @@ export async function updateDoc(
   id: string,
   data: Record<string, unknown>,
 ): Promise<Doc> {
-  const { databases } = createAdminClient();
-  return (await databases.updateDocument(
-    dbId(),
-    collectionId,
-    id,
+  const { tables } = createAdminClient();
+  const row = await tables.updateRow({
+    databaseId: dbId(),
+    tableId: collectionId,
+    rowId: id,
     data,
-  )) as unknown as Doc;
+  });
+  return asDoc(row as unknown as Record<string, unknown>);
 }
 
 export async function deleteDoc(collectionId: string, id: string): Promise<void> {
-  const { databases } = createAdminClient();
-  await databases.deleteDocument(dbId(), collectionId, id);
+  const { tables } = createAdminClient();
+  await tables.deleteRow({
+    databaseId: dbId(),
+    tableId: collectionId,
+    rowId: id,
+  });
 }
 
 export async function findOne(

@@ -14,10 +14,6 @@ import {
   TOOTH_ID_ORDER,
   type ToothRegion,
 } from '@/lib/model.config';
-import {
-  bakeToothIdAttribute,
-  seedRegionsFromValleys,
-} from '@/lib/toothArchBake';
 
 /**
  * Caps-only studio env: light-grey body fill + softbox strip lights.
@@ -148,23 +144,10 @@ function packStyles(teeth: TeethMap, arch: ArchChoice) {
 }
 
 type ShellShader = {
-  uniforms: {
-    uStyles: { value: Float32Array };
-    uA0: { value: Float32Array };
-    uA1: { value: Float32Array };
-    uY0: { value: Float32Array };
-    uY1: { value: Float32Array };
-    uInflate: { value: number };
-    uDebugRegions?: { value: number };
-    [key: string]: { value: Float32Array | number } | undefined;
-  };
+  uniforms: Record<string, { value: Float32Array | number }>;
 };
 
-function createSilverMaterial(
-  envMap: THREE.Texture,
-  inflate: number,
-  debugRegions: boolean,
-): THREE.MeshPhysicalMaterial {
+function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color('#D4D4D8'),
     metalness: 1,
@@ -191,19 +174,14 @@ function createSilverMaterial(
     shader.uniforms.uA1 = { value: new Float32Array(16) };
     shader.uniforms.uY0 = { value: new Float32Array(16) };
     shader.uniforms.uY1 = { value: new Float32Array(16) };
-    shader.uniforms.uDebugRegions = { value: debugRegions ? 1 : 0 };
 
     shader.vertexShader = shader.vertexShader
       .replace(
         'void main() {',
         /* glsl */ `
         uniform float uInflate;
-        attribute float aToothId;
-        attribute float aToothU;
         varying vec3 vShellPos;
         varying vec3 vShellNormal;
-        varying float vToothId;
-        varying float vToothU;
         void main() {
         `,
       )
@@ -213,8 +191,6 @@ function createSilverMaterial(
         #include <begin_vertex>
         vShellPos = position;
         vShellNormal = objectNormal;
-        vToothId = aToothId;
-        vToothU = aToothU;
         transformed += normalize(objectNormal) * uInflate;
         `,
       );
@@ -228,11 +204,8 @@ function createSilverMaterial(
         uniform float uA1[16];
         uniform float uY0[16];
         uniform float uY1[16];
-        uniform float uDebugRegions;
         varying vec3 vShellPos;
         varying vec3 vShellNormal;
-        varying float vToothId;
-        varying float vToothU;
 
         float sdRoundBox(vec2 p, vec2 b, float r) {
           vec2 q = abs(p) - b + r;
@@ -242,28 +215,13 @@ function createSilverMaterial(
         // Per-tooth rounded cap in local (u,v): wide at gum, narrower + rounder at bite
         float toothCapSDF(float u, float v) {
           float vv = clamp(v, 0.0, 1.0);
-          float hx = mix(0.52, 0.44, vv);
+          // Strong lateral overlap at gum so neighbor round-rects seal (no white hairlines)
+          float hx = mix(0.72, 0.50, vv);
           float hy = 0.505;
-          float corner = mix(0.05, 0.26, smoothstep(0.2, 0.95, vv));
+          // Small corners at gumline (seal), ~28% width at biting edge
+          float corner = mix(0.06, 0.28, smoothstep(0.2, 0.95, vv));
           vec2 p = vec2(u - 0.5, v - 0.5);
           return sdRoundBox(p, vec2(hx, hy), min(corner, min(hx, hy) - 0.02));
-        }
-
-        vec3 debugToothColor(float tid) {
-          float h = fract(tid * 0.6180339887);
-          float s = 0.75;
-          float v = 0.92;
-          float i = floor(h * 6.0);
-          float f = fract(h * 6.0);
-          float p = v * (1.0 - s);
-          float q = v * (1.0 - f * s);
-          float t = v * (1.0 - (1.0 - f) * s);
-          if (i < 1.0) return vec3(v, t, p);
-          if (i < 2.0) return vec3(q, v, p);
-          if (i < 3.0) return vec3(p, v, t);
-          if (i < 4.0) return vec3(p, q, v);
-          if (i < 5.0) return vec3(t, p, v);
-          return vec3(v, p, q);
         }
 
         void main() {
@@ -276,92 +234,100 @@ function createSilverMaterial(
         '#include <clipping_planes_fragment>',
         /* glsl */ `
         #include <clipping_planes_fragment>
+        float ang = atan(vShellPos.x, vShellPos.z);
         float y = vShellPos.y;
-        int hit = int(floor(vToothId + 0.5));
-        if (hit < 0 || hit > 15) discard;
 
-        float hitStyle = uStyles[hit];
-        // Debug: show every region; production: only selected styles
-        if (uDebugRegions < 0.5 && hitStyle < 0.5) discard;
+        // Pick the active tooth with the deepest (most negative) rounded mask
+        int hit = -1;
+        float hitStyle = 0.0;
+        float bestD = 1e5;
+        float secondD = 1e5;
+        float u = 0.5;
+        float v = 0.5;
 
-        float y0 = uY0[hit];
-        float y1 = uY1[hit];
-        if (y < y0 - 0.03 || y > y1 + 0.03) discard;
-
-        float u = clamp(vToothU, -0.15, 1.15);
-        float v = (y - y0) / max(y1 - y0, 1e-4);
-        float bestD = toothCapSDF(u, v);
-
-        float aa = max(fwidth(bestD) * 0.6, 0.0015);
-        if (bestD > aa) discard;
-
-        if (uDebugRegions > 0.5) {
-          // Solid region paint — skip silver lighting path
-        } else {
-          float faceDot = vShellNormal.z;
-
-          if (hitStyle > 1.5 && hitStyle < 2.5 && faceDot > -0.15) {
-            vec2 wp = vec2(u - 0.5, v - 0.48);
-            float wd = sdRoundBox(wp, vec2(0.30, 0.28), 0.08);
-            float waa = max(fwidth(wd) * 0.6, 0.0015);
-            if (wd < -waa) discard;
+        for (int i = 0; i < 16; i++) {
+          float st = uStyles[i];
+          if (st < 0.5) continue;
+          if (y < uY0[i] - 0.03 || y > uY1[i] + 0.03) continue;
+          float tu = (ang - uA0[i]) / max(uA1[i] - uA0[i], 1e-4);
+          float tv = (y - uY0[i]) / max(uY1[i] - uY0[i], 1e-4);
+          if (tu < -0.35 || tu > 1.35 || tv < -0.2 || tv > 1.2) continue;
+          float d = toothCapSDF(tu, tv);
+          if (d < bestD) {
+            secondD = bestD;
+            bestD = d;
+            hit = i;
+            hitStyle = st;
+            u = tu; v = tv;
+          } else if (d < secondD) {
+            secondD = d;
           }
-
-          if (hitStyle > 2.5 && faceDot > 0.1) {
-            float g1 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.36));
-            float g2 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.52));
-            float g3 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.68));
-            groove = max(g1, max(g2, g3));
-            groove *= smoothstep(0.06, 0.16, u) * smoothstep(0.06, 0.16, 1.0 - u);
-            groove *= smoothstep(0.02, 0.0, bestD);
-          }
-
-          float sideSeam = max(
-            1.0 - smoothstep(0.0, 0.04, u),
-            1.0 - smoothstep(0.0, 0.04, 1.0 - u)
-          );
-          seam = sideSeam * 0.4;
-          rim = (1.0 - smoothstep(0.0, 0.045, -bestD)) * step(bestD, 0.0);
         }
+
+        // Soft outer AA via fwidth; keep fully opaque inside so seams don't show teeth
+        float aa = max(fwidth(bestD) * 0.6, 0.0015);
+        if (hit < 0 || bestD > aa) discard;
+
+        float faceDot = vShellNormal.z;
+
+        // Window opening inside the rounded mask (keep silver rim)
+        if (hitStyle > 1.5 && hitStyle < 2.5 && faceDot > -0.15) {
+          vec2 wp = vec2(u - 0.5, v - 0.48);
+          float wd = sdRoundBox(wp, vec2(0.30, 0.28), 0.08);
+          float waa = max(fwidth(wd) * 0.6, 0.0015);
+          if (wd < -waa) discard;
+        }
+
+        // Deep cut grooves inside the rounded mask
+        if (hitStyle > 2.5 && faceDot > 0.1) {
+          float g1 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.36));
+          float g2 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.52));
+          float g3 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.68));
+          groove = max(g1, max(g2, g3));
+          groove *= smoothstep(0.06, 0.16, u) * smoothstep(0.06, 0.16, 1.0 - u);
+          groove *= smoothstep(0.02, 0.0, bestD);
+        }
+
+        // Faint dark seam between overlapping neighbors (thin, not a thick bar)
+        seam = (1.0 - smoothstep(0.0, 0.018, abs(bestD - secondD))) * step(secondD, 0.08);
+        float sideSeam = max(
+          1.0 - smoothstep(0.0, 0.035, u),
+          1.0 - smoothstep(0.0, 0.035, 1.0 - u)
+        );
+        seam = max(seam, sideSeam * 0.35);
+        // Edge highlight — brighter rim so the shell reads as real metal thickness
+        rim = (1.0 - smoothstep(0.0, 0.045, -bestD)) * step(bestD, 0.0);
         `,
       )
       .replace(
         '#include <lights_fragment_begin>',
         /* glsl */ `
         #include <lights_fragment_begin>
-        if (uDebugRegions < 0.5) {
-          reflectedLight.directDiffuse = vec3(0.0);
-          reflectedLight.directSpecular = vec3(0.0);
-        }
+        reflectedLight.directDiffuse = vec3(0.0);
+        reflectedLight.directSpecular = vec3(0.0);
         `,
       )
       .replace(
         '#include <opaque_fragment>',
         /* glsl */ `
-        if (uDebugRegions > 0.5) {
-          outgoingLight = debugToothColor(float(hit));
-          // Darken near borders so gaps read clearly
-          outgoingLight *= mix(0.55, 1.0, smoothstep(0.0, 0.08, min(u, 1.0 - u)));
-        } else {
-          if (groove > 0.01) {
-            outgoingLight *= mix(1.0, 0.28, groove);
-            outgoingLight = mix(outgoingLight, vec3(0.14), groove * 0.75);
-          }
-          outgoingLight += vec3(0.35) * rim;
-          outgoingLight *= mix(1.0, 0.42, seam * 0.95);
-          outgoingLight = min(outgoingLight, vec3(0.84));
-          float luma = (outgoingLight.r + outgoingLight.g + outgoingLight.b) / 3.0;
-          outgoingLight = vec3(luma);
+        if (groove > 0.01) {
+          outgoingLight *= mix(1.0, 0.28, groove);
+          outgoingLight = mix(outgoingLight, vec3(0.14), groove * 0.75);
         }
+        outgoingLight += vec3(0.35) * rim;
+        outgoingLight *= mix(1.0, 0.42, seam * 0.95);
+        outgoingLight = min(outgoingLight, vec3(0.84));
+        // Force neutral silver (kill blue/warm env tint)
+        float luma = (outgoingLight.r + outgoingLight.g + outgoingLight.b) / 3.0;
+        outgoingLight = vec3(luma);
         #include <opaque_fragment>
         `,
       );
 
-    mat.userData.shader = shader as unknown as ShellShader;
+    mat.userData.shader = shader as ShellShader;
   };
 
-  mat.customProgramCacheKey = () =>
-    debugRegions ? 'silver-shell-arch-v7-debug' : 'silver-shell-arch-v7';
+  mat.customProgramCacheKey = () => 'silver-shell-mask-v6';
   return mat;
 }
 
@@ -370,7 +336,6 @@ function pushUniforms(
   regions: Record<ToothId, ToothRegion>,
   teeth: TeethMap,
   arch: ArchChoice,
-  debugRegions: boolean,
 ) {
   const shader = mat.userData.shader as ShellShader | undefined;
   if (!shader?.uniforms?.uStyles) return;
@@ -381,9 +346,6 @@ function pushUniforms(
   shader.uniforms.uY0.value = packed.y0;
   shader.uniforms.uY1.value = packed.y1;
   shader.uniforms.uInflate.value = modelConfig.shellInflate;
-  if (shader.uniforms.uDebugRegions) {
-    shader.uniforms.uDebugRegions.value = debugRegions ? 1 : 0;
-  }
 }
 
 function regionAtPoint(
@@ -405,7 +367,7 @@ function regionAtPoint(
 
 /**
  * Duplicated teeth mesh with inflated silver shell.
- * Tooth membership is baked per-vertex along the arch curve (valley borders).
+ * Fragments outside selected tooth regions are discarded in the shader.
  */
 export function SilverShellLayer({
   url,
@@ -417,8 +379,6 @@ export function SilverShellLayer({
   regions,
   onToothClick,
   interactive = true,
-  debugRegions = false,
-  onRegionsSeeded,
 }: {
   url: string;
   position: [number, number, number];
@@ -429,15 +389,10 @@ export function SilverShellLayer({
   regions: Record<ToothId, ToothRegion>;
   onToothClick: (id: ToothId) => void;
   interactive?: boolean;
-  /** Color each tooth region (for ?debug=1 border tuning). */
-  debugRegions?: boolean;
-  /** Called once after valley borders are auto-seeded from the mesh. */
-  onRegionsSeeded?: (next: Record<ToothId, ToothRegion>) => void;
 }) {
   const { scene } = useGLTF(url);
   const { gl } = useThree();
   const matRef = useRef<THREE.MeshPhysicalMaterial | null>(null);
-  const seededRef = useRef(false);
 
   // Dedicated env for silver only — does not touch scene.environment
   const envMap = useMemo(() => buildSilverStudioEnv(gl), [gl]);
@@ -456,40 +411,14 @@ export function SilverShellLayer({
       if (!/teeth/i.test(name)) return;
       if (/gum/i.test(name)) return;
       const isUp = /up/i.test(name);
-      const geometry = weldSmooth(obj.geometry, 0.015);
-      geos.push({ name, geometry, isUp });
+      geos.push({ name, geometry: weldSmooth(obj.geometry, 0.015), isUp });
     });
     return geos;
   }, [scene]);
 
-  // Optionally auto-seed valley borders once, then bake toothId on region changes
-  useEffect(() => {
-    let bakeRegions = regions;
-    if (
-      !seededRef.current &&
-      toothGeos.length > 0 &&
-      modelConfig.autoSeedArchBorders
-    ) {
-      seededRef.current = true;
-      let next = regions;
-      for (const g of toothGeos) {
-        const pos = g.geometry.getAttribute('position');
-        if (!pos) continue;
-        next = seedRegionsFromValleys(pos.array, next, g.isUp);
-      }
-      bakeRegions = next;
-      onRegionsSeeded?.(next);
-    } else if (!seededRef.current) {
-      seededRef.current = true;
-    }
-    for (const g of toothGeos) {
-      bakeToothIdAttribute(g.geometry, bakeRegions, g.isUp);
-    }
-  }, [toothGeos, regions, onRegionsSeeded]);
-
   const material = useMemo(
-    () => createSilverMaterial(envMap, modelConfig.shellInflate, debugRegions),
-    [envMap, debugRegions],
+    () => createSilverMaterial(envMap, modelConfig.shellInflate),
+    [envMap],
   );
 
   useEffect(() => {
@@ -499,16 +428,18 @@ export function SilverShellLayer({
     };
   }, [material]);
 
+  // Push uniforms every frame until shader compiles, then on changes
   useEffect(() => {
-    pushUniforms(material, regions, teeth, arch, debugRegions);
+    pushUniforms(material, regions, teeth, arch);
     material.needsUpdate = true;
-  }, [material, regions, teeth, arch, debugRegions]);
+  }, [material, regions, teeth, arch]);
 
+  // Retry push after compile (onBeforeCompile sets userData.shader lazily)
   useEffect(() => {
     let frames = 0;
     let id = 0;
     const tick = () => {
-      pushUniforms(material, regions, teeth, arch, debugRegions);
+      pushUniforms(material, regions, teeth, arch);
       frames += 1;
       if (frames < 90 && !material.userData.shader) {
         id = requestAnimationFrame(tick);
@@ -516,7 +447,7 @@ export function SilverShellLayer({
     };
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
-  }, [material, regions, teeth, arch, debugRegions]);
+  }, [material, regions, teeth, arch]);
 
   const visibleGeos = toothGeos.filter((g) => {
     if (arch === 'top') return g.isUp;

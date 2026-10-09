@@ -52,7 +52,7 @@ export function GlbArch({
   const clone = useMemo(() => scene.clone(true), [scene]);
   const ids = toothIdsForArch(arch);
   const enamelMats = useRef(new Map<string, THREE.Material>());
-  const t = modelConfig.importedTransform;
+  const t = modelConfig.backdropTransform;
 
   useEffect(() => {
     clone.traverse((obj) => {

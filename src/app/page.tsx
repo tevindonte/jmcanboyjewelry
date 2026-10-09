@@ -104,7 +104,7 @@ export default async function HomePage() {
                 </p>
               )}
             </div>
-            <div className="order-2 relative isolate flex h-[min(70vw,400px)] min-h-[300px] w-full min-w-0 items-center justify-center self-center pb-4 lg:h-[min(52vh,460px)] lg:max-h-[calc(100dvh-11rem)] lg:pb-0">
+            <div className="order-2 relative isolate flex h-[min(88vw,520px)] min-h-[360px] w-full min-w-0 items-center justify-center self-center pb-4 lg:h-[min(68vh,620px)] lg:max-h-[calc(100dvh-8rem)] lg:pb-0">
               <HeroGrill />
             </div>
           </div>

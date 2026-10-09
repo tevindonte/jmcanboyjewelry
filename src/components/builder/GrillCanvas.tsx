@@ -134,8 +134,9 @@ function FrameArch({
     if (hero) {
       const aspect = size.width / Math.max(size.height, 1);
       const halfFov = THREE.MathUtils.degToRad(cam.fov) / 2;
-      const dist = Math.max(2.6, 1.7 / (0.7 * Math.tan(halfFov) * aspect));
-      cam.position.set(0.06 * dist, dist * 0.14, dist);
+      // Fill most of the hero frame — closer than builder so grillz read large
+      const dist = Math.max(1.85, 1.05 / (0.82 * Math.tan(halfFov) * Math.max(aspect, 0.85)));
+      cam.position.set(0.04 * dist, dist * 0.1, dist);
     } else {
       const [cx, cy, cz] = cfg.position;
       cam.position.set(cx, both ? cy + 0.05 : cy, both ? cz + 0.15 : cz);
@@ -246,8 +247,8 @@ function Scene({
   const backdropUrl = modelConfig.backdropUrl;
   const showBackdrop = Boolean(backdropUrl) && !backdropFailed;
   const hideNatural = showBackdrop && modelConfig.hideProceduralBase;
-  const useShell = Boolean(modelConfig.useShellGrillz) && !isHero && showBackdrop;
-  const hideCaps = (Boolean(modelConfig.hideCaps) || useShell) && !isHero;
+  const useShell = Boolean(modelConfig.useShellGrillz) && showBackdrop;
+  const hideCaps = Boolean(modelConfig.hideCaps) || useShell;
   const teethForCaps = hideCaps ? ({} as TeethMap) : teeth;
   const importedArch =
     arch === 'top' ? 'top' : arch === 'bottom' ? 'bottom' : 'both';

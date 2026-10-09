@@ -35,7 +35,7 @@ export function HeroGrill() {
       onFallback={onFallback}
       mode="hero"
       interactive
-      className="h-full min-h-[280px] w-full lg:min-h-0"
+      className="h-full min-h-[360px] w-full lg:min-h-0"
     />
   );
 }

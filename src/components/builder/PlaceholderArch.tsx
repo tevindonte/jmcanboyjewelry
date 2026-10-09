@@ -484,15 +484,16 @@ export function PlaceholderArch({
   );
 }
 
+/** Homepage hero: Top 6, all plain silver. */
 export function heroShowcaseTeeth(): TeethMap {
   return {
     U1: 'none',
-    U2: 'window',
-    U3: 'deepcut',
+    U2: 'plain',
+    U3: 'plain',
     U4: 'plain',
     U5: 'plain',
-    U6: 'window',
-    U7: 'deepcut',
+    U6: 'plain',
+    U7: 'plain',
     U8: 'none',
   };
 }

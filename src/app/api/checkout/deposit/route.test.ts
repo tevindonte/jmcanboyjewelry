@@ -68,7 +68,7 @@ describe('POST /api/checkout/deposit', () => {
     });
     mocks.resolvePublicTier.mockResolvedValue('standard');
     mocks.getDoc.mockResolvedValue({
-      $id: '11111111-1111-4111-8111-111111111111',
+      $id: '6ac9671d00283e8a9dfe',
       arch: 'top',
       teeth_json: JSON.stringify(top6Plain),
       metal: 'silver',
@@ -99,7 +99,7 @@ describe('POST /api/checkout/deposit', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          designId: '11111111-1111-4111-8111-111111111111',
+          designId: '6ac9671d00283e8a9dfe',
           name: 'Test Buyer',
           email: 'buyer@example.com',
           fulfillment: 'dentist_scan',
@@ -131,7 +131,7 @@ describe('POST /api/checkout/deposit', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          designId: '11111111-1111-4111-8111-111111111111',
+          designId: '6ac9671d00283e8a9dfe',
           name: 'Test Buyer',
           email: 'buyer@example.com',
           fulfillment: 'kit_mail',

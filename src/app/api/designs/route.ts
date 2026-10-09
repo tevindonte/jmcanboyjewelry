@@ -34,6 +34,13 @@ export async function POST(request: Request) {
     metal,
   });
 
+  if (estimate.selectedToothCount === 0) {
+    return NextResponse.json(
+      { error: 'Select at least one tooth before saving.' },
+      { status: 400 },
+    );
+  }
+
   try {
     const doc = await createDoc(col.designs, {
       email: parsed.data.email.toLowerCase(),

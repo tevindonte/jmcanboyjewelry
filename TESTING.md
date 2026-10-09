@@ -7,6 +7,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 Copy the printed `whsec_…` into `STRIPE_WEBHOOK_SECRET` in `.env.local`, then restart Next.
+Webhook path in code: `/api/webhooks/stripe`.
 
 Use the **Stripe Dashboard → Developers → test mode** event log alongside the CLI listener.
 

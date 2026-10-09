@@ -33,7 +33,12 @@ export function SaveDesignPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Could not save');
-      setSaved({ id: data.id, url: data.url, metal });
+      // Prefer current origin so local saves don't point at production SITE_URL.
+      const url =
+        typeof window !== 'undefined' && data.id
+          ? `${window.location.origin}/d/${data.id}`
+          : data.url;
+      setSaved({ id: data.id, url, metal });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save');
     } finally {

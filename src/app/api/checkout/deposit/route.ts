@@ -70,6 +70,13 @@ export async function POST(request: Request) {
     metal,
   });
 
+  if (estimate.selectedToothCount === 0) {
+    return NextResponse.json(
+      { error: 'Pick at least one tooth in the builder before paying a deposit.' },
+      { status: 400 },
+    );
+  }
+
   if (!estimate.priced || estimate.depositCents == null || estimate.totalCents == null) {
     return NextResponse.json(
       { error: 'Pricing is not configured yet. Price on request.' },

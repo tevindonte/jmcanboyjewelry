@@ -23,8 +23,15 @@ export const waitlistSchema = z.object({
   honeypot: z.string().max(0).optional().or(z.literal('')),
 });
 
+/** Appwrite row/document IDs (not always UUID-shaped). */
+export const appwriteIdSchema = z
+  .string()
+  .min(1)
+  .max(36)
+  .regex(/^[a-zA-Z0-9._-]+$/);
+
 export const depositCheckoutSchema = z.object({
-  designId: z.string().uuid(),
+  designId: appwriteIdSchema,
   email: z.string().email(),
   name: z.string().min(1).max(120),
   phone: z.string().max(40).optional().nullable(),

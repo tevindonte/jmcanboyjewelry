@@ -225,6 +225,7 @@ function Scene({
   debug,
   anchors,
   regions,
+  onRegionsChange,
   backdropFailed,
   onBackdropFailed,
 }: {
@@ -240,6 +241,7 @@ function Scene({
   debug: boolean;
   anchors: Record<ToothId, ToothAnchor>;
   regions: Record<ToothId, ToothRegion>;
+  onRegionsChange: (next: Record<ToothId, ToothRegion>) => void;
   backdropFailed: boolean;
   onBackdropFailed: () => void;
 }) {
@@ -293,6 +295,8 @@ function Scene({
               regions={regions}
               onToothClick={onToothClick}
               interactive={interactive}
+              debugRegions={debug}
+              onRegionsSeeded={onRegionsChange}
             />
           </Suspense>
         )}
@@ -534,6 +538,7 @@ export function GrillCanvas({
                 debug={debug && !isHero}
                 anchors={anchors}
                 regions={regions}
+                onRegionsChange={setRegions}
                 backdropFailed={backdropFailed}
                 onBackdropFailed={() => setBackdropFailed(true)}
               />

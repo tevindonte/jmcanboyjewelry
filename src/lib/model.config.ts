@@ -58,38 +58,25 @@ function buildToothAnchors(): Record<ToothId, ToothAnchor> {
 }
 
 /**
- * Midpoints between tooth angles → gap planes; focus mid-arch (2–7) first.
- * Region span uses a slightly wider arch than cosmetic anchors so slabs cover
- * the fused scan's labial faces (tune with ?debug=1).
+ * Arch borders from tooth-anchor midpoints (valleys between centers).
+ * Vertex assignment uses planes between anchors (see toothArchBake), not
+ * radial wedges. a0/a1 are arch-angles for debug sliders / gizmos.
+ * Refine with ?debug=1 and paste here.
  */
 function buildToothRegions(): Record<ToothId, ToothRegion> {
-  const REGION_SPAN = 1.72;
-  const regionAngle = (n: number) =>
-    -REGION_SPAN / 2 + (n - 1 + 0.5) * (REGION_SPAN / 8);
+  const ang = (n: number) => angleFor(n);
+  const mid = (a: number, b: number) => (a + b) * 0.5;
+  const borders: number[] = [];
+  borders.push(ang(1) - (ang(2) - ang(1)) * 0.55);
+  for (let n = 1; n <= 7; n++) borders.push(mid(ang(n), ang(n + 1)));
+  borders.push(ang(8) + (ang(8) - ang(7)) * 0.55);
+
   const out = {} as Record<ToothId, ToothRegion>;
-  const mk = (prefix: 'U' | 'L', n: number): ToothRegion => {
-    const a = regionAngle(n);
-    const left =
-      n === 1
-        ? a - (regionAngle(2) - regionAngle(1)) * 0.55
-        : (regionAngle(n - 1) + a) * 0.5;
-    const right =
-      n === 8
-        ? a + (regionAngle(8) - regionAngle(7)) * 0.55
-        : (a + regionAngle(n + 1)) * 0.5;
-    // Angular overlap so rounded caps meet without white hairline gaps
-    const overlap = 0.035;
-    const a0 = left - overlap * 0.5;
-    const a1 = right + overlap * 0.5;
-    // Object-space Y ranges tuned for teeths-blend smile view (nudge via ?debug=1)
-    if (prefix === 'U') {
-      return { a0, a1, y0: -0.06, y1: 0.36 };
-    }
-    return { a0, a1, y0: -0.50, y1: 0.0 };
-  };
   for (let n = 1; n <= 8; n++) {
-    out[`U${n}` as ToothId] = mk('U', n);
-    out[`L${n}` as ToothId] = mk('L', n);
+    const a0 = borders[n - 1];
+    const a1 = borders[n];
+    out[`U${n}` as ToothId] = { a0, a1, y0: -0.06, y1: 0.36 };
+    out[`L${n}` as ToothId] = { a0, a1, y0: -0.50, y1: 0.0 };
   }
   return out;
 }
@@ -121,10 +108,16 @@ export const modelConfig = {
   /** Per-tooth transforms for legacy procedural caps / debug dots. */
   toothAnchors: buildToothAnchors(),
   /**
-   * Silver shell regions (arch-angle slabs). Paste from ?debug=1 Print regions.
-   * Shell duplicates the teeth mesh; only selected styles show silver.
+   * Silver shell arch borders (a0/a1 along atan2(x,z)).
+   * Paste tuned values from ?debug=1 Print regions.
+   * Per-vertex toothId is baked from these borders — not fragment plane tests.
    */
   toothRegions: buildToothRegions(),
+  /**
+   * When true, replace toothRegions a0/a1 once at load with mesh valley detection.
+   * Set false after pasting hand-tuned borders from ?debug=1.
+   */
+  autoSeedArchBorders: false,
   /** Inflate shell along normals (model units; ~0.2mm at this scale). */
   shellInflate: 0.009,
   /** Use shader silver shell over teeth (not procedural PlaceholderArch caps). */

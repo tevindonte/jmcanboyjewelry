@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { Html, useEnvironment, useGLTF } from '@react-three/drei';
+import { Html, useGLTF } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TeethMap, ToothId } from '@/lib/pricing';
 import type { ToothStyle } from '@/lib/pricing.config';
@@ -13,6 +14,86 @@ import {
   TOOTH_ID_ORDER,
   type ToothRegion,
 } from '@/lib/model.config';
+
+/**
+ * Caps-only studio env: light-grey body fill + softbox strip lights.
+ * Not applied to scene.environment — only material.envMap.
+ * Labial faces (+Z) must sample a light grey card or metalness×env → black chrome.
+ */
+function buildSilverStudioEnv(gl: THREE.WebGLRenderer): THREE.Texture {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8a909a);
+
+  // Room walls — light cool grey (silver body under metalness 1)
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 20, 20),
+    new THREE.MeshBasicMaterial({
+      color: 0x9aa2ae,
+      side: THREE.BackSide,
+    }),
+  );
+  scene.add(box);
+
+  // Darker floor for contrast in downward reflections
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshBasicMaterial({ color: 0x22262c }),
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -4;
+  scene.add(floor);
+
+  // Cool-white overhead
+  const overhead = new THREE.Mesh(
+    new THREE.PlaneGeometry(16, 5),
+    new THREE.MeshBasicMaterial({ color: 0xd8dde6 }),
+  );
+  overhead.rotation.x = Math.PI / 2;
+  overhead.position.set(0, 6.2, 0.8);
+  scene.add(overhead);
+
+  const softbox = (
+    w: number,
+    h: number,
+    color: number,
+    pos: [number, number, number],
+    lookAt: [number, number, number],
+  ) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }),
+    );
+    m.position.set(...pos);
+    m.lookAt(...lookAt);
+    scene.add(m);
+  };
+
+  // Large frontal fill (+Z) — smile faces sample this → sterling body grey
+  softbox(16, 12, 0xc9ced6, [0, 1.0, 8], [0, 0.2, 0]);
+  softbox(12, 8, 0xb8bec8, [0, -0.6, 7.0], [0, 0.35, 0]);
+  softbox(18, 14, 0xaeb4be, [0, 2.0, 9.5], [0, 0.1, 0]);
+
+  // Softbox strip lights — brighter than fill for clear polished contrast
+  softbox(5.5, 1.5, 0xf2f4f8, [-3.8, 3.5, 6.0], [0, 0.2, 0]);
+  softbox(4.8, 1.3, 0xe8ecf2, [4.2, 2.9, 5.2], [0, 0.15, 0]);
+  softbox(4.5, 1.2, 0xdce2ea, [0.2, 4.6, -3.8], [0, 0.25, 0]);
+
+  // Side / back fill — shadowed metal → dark grey (not black)
+  softbox(8, 6, 0x585f6c, [-7.5, 1.2, 1.5], [0, 0.2, 0]);
+  softbox(8, 6, 0x545b68, [7.5, 1.2, 1.5], [0, 0.2, 0]);
+  softbox(12, 6, 0x3a4048, [0, 1.0, -7.5], [0, 0.2, 0]);
+
+  const pmrem = new THREE.PMREMGenerator(gl);
+  const rt = pmrem.fromScene(scene, 0.08);
+  pmrem.dispose();
+  scene.traverse((o) => {
+    if (o instanceof THREE.Mesh) {
+      o.geometry.dispose();
+      (o.material as THREE.Material).dispose();
+    }
+  });
+  return rt.texture;
+}
 
 const STYLE_NONE = 0;
 const STYLE_PLAIN = 1;
@@ -73,13 +154,18 @@ type ShellShader = {
 
 function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#d8e0ea'),
+    color: new THREE.Color('#C9CED6'),
     metalness: 1,
-    roughness: 0.2,
+    roughness: 0.14,
+    clearcoat: 0,
+    clearcoatRoughness: 0,
     envMap,
-    envMapIntensity: 1.35,
-    emissive: new THREE.Color('#2a3038'),
-    emissiveIntensity: 0.12,
+    envMapIntensity: 1.55,
+    emissive: new THREE.Color('#000000'),
+    emissiveIntensity: 0,
+    transparent: false,
+    opacity: 1,
+    depthWrite: true,
     side: THREE.FrontSide,
     polygonOffset: true,
     polygonOffsetFactor: -2,
@@ -183,12 +269,26 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
         `,
       )
       .replace(
+        '#include <lights_fragment_begin>',
+        /* glsl */ `
+        #include <lights_fragment_begin>
+        // Caps: drop scene key/fill — body + highlights come from dedicated envMap only
+        reflectedLight.directDiffuse = vec3(0.0);
+        reflectedLight.directSpecular = vec3(0.0);
+        `,
+      )
+      .replace(
         '#include <opaque_fragment>',
         /* glsl */ `
         if (groove > 0.01) {
           outgoingLight *= mix(1.0, 0.28, groove);
           outgoingLight = mix(outgoingLight, vec3(0.12, 0.13, 0.15), groove * 0.75);
         }
+        // Soft-clamp highlights so ACES doesn't blow silver to pearl-white
+        outgoingLight = min(outgoingLight, vec3(0.84));
+        // Neutral grey — no blue chrome, no warm pearl
+        float luma = dot(outgoingLight, vec3(0.299, 0.587, 0.114));
+        outgoingLight = mix(outgoingLight, vec3(luma), 0.35);
         #include <opaque_fragment>
         `,
       );
@@ -196,7 +296,7 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
     mat.userData.shader = shader as ShellShader;
   };
 
-  mat.customProgramCacheKey = () => 'silver-shell-v9';
+  mat.customProgramCacheKey = () => 'silver-shell-mat-v9';
   return mat;
 }
 
@@ -260,11 +360,17 @@ export function SilverShellLayer({
   interactive?: boolean;
 }) {
   const { scene } = useGLTF(url);
+  const { gl } = useThree();
   const matRef = useRef<THREE.MeshPhysicalMaterial | null>(null);
 
-  // Dedicated env for silver only (scene Environment stays for enamel/gums).
-  // apartment = softer indoor light — avoids black-mirror chrome under ACES.
-  const envMap = useEnvironment({ preset: 'apartment' });
+  // Dedicated env for silver only — does not touch scene.environment
+  const envMap = useMemo(() => buildSilverStudioEnv(gl), [gl]);
+
+  useEffect(() => {
+    return () => {
+      envMap.dispose();
+    };
+  }, [envMap]);
 
   const toothGeos = useMemo(() => {
     const geos: { name: string; geometry: THREE.BufferGeometry; isUp: boolean }[] = [];

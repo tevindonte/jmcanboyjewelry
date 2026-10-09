@@ -77,10 +77,10 @@ function buildToothRegions(): Record<ToothId, ToothRegion> {
       n === 8
         ? a + (regionAngle(8) - regionAngle(7)) * 0.55
         : (a + regionAngle(n + 1)) * 0.5;
-    // Pull neighbors slightly apart for clean silver seams
-    const gap = 0.012;
-    const a0 = left + gap * 0.5;
-    const a1 = right - gap * 0.5;
+    // Angular overlap so rounded caps meet without white hairline gaps
+    const overlap = 0.035;
+    const a0 = left - overlap * 0.5;
+    const a1 = right + overlap * 0.5;
     // Object-space Y ranges tuned for teeths-blend smile view (nudge via ?debug=1)
     if (prefix === 'U') {
       return { a0, a1, y0: -0.06, y1: 0.36 };
@@ -126,7 +126,7 @@ export const modelConfig = {
    */
   toothRegions: buildToothRegions(),
   /** Inflate shell along normals (model units; ~0.2mm at this scale). */
-  shellInflate: 0.0048,
+  shellInflate: 0.009,
   /** Use shader silver shell over teeth (not procedural PlaceholderArch caps). */
   useShellGrillz: true,
   /** Optional named-part GLB (unused in backdrop mode). */

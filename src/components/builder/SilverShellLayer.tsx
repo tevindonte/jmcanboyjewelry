@@ -22,31 +22,29 @@ import {
  */
 function buildSilverStudioEnv(gl: THREE.WebGLRenderer): THREE.Texture {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x8a909a);
+  // Neutral greys only — no blue tint in reflections
+  scene.background = new THREE.Color(0x8a8a8a);
 
-  // Room walls — light cool grey (silver body under metalness 1)
   const box = new THREE.Mesh(
     new THREE.BoxGeometry(20, 20, 20),
     new THREE.MeshBasicMaterial({
-      color: 0x9aa2ae,
+      color: 0x9a9a9a,
       side: THREE.BackSide,
     }),
   );
   scene.add(box);
 
-  // Darker floor for contrast in downward reflections
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
-    new THREE.MeshBasicMaterial({ color: 0x22262c }),
+    new THREE.MeshBasicMaterial({ color: 0x242424 }),
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -4;
   scene.add(floor);
 
-  // Cool-white overhead
   const overhead = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 5),
-    new THREE.MeshBasicMaterial({ color: 0xd8dde6 }),
+    new THREE.MeshBasicMaterial({ color: 0xd6d6d6 }),
   );
   overhead.rotation.x = Math.PI / 2;
   overhead.position.set(0, 6.2, 0.8);
@@ -68,20 +66,17 @@ function buildSilverStudioEnv(gl: THREE.WebGLRenderer): THREE.Texture {
     scene.add(m);
   };
 
-  // Large frontal fill (+Z) — smile faces sample this → sterling body grey
-  softbox(16, 12, 0xc9ced6, [0, 1.0, 8], [0, 0.2, 0]);
-  softbox(12, 8, 0xb8bec8, [0, -0.6, 7.0], [0, 0.35, 0]);
-  softbox(18, 14, 0xaeb4be, [0, 2.0, 9.5], [0, 0.1, 0]);
+  softbox(16, 12, 0xd4d4d8, [0, 1.0, 8], [0, 0.2, 0]);
+  softbox(12, 8, 0xc0c0c4, [0, -0.6, 7.0], [0, 0.35, 0]);
+  softbox(18, 14, 0xb0b0b4, [0, 2.0, 9.5], [0, 0.1, 0]);
 
-  // Softbox strip lights — brighter than fill for clear polished contrast
-  softbox(5.5, 1.5, 0xf2f4f8, [-3.8, 3.5, 6.0], [0, 0.2, 0]);
-  softbox(4.8, 1.3, 0xe8ecf2, [4.2, 2.9, 5.2], [0, 0.15, 0]);
-  softbox(4.5, 1.2, 0xdce2ea, [0.2, 4.6, -3.8], [0, 0.25, 0]);
+  softbox(5.5, 1.5, 0xf2f2f2, [-3.8, 3.5, 6.0], [0, 0.2, 0]);
+  softbox(4.8, 1.3, 0xe8e8e8, [4.2, 2.9, 5.2], [0, 0.15, 0]);
+  softbox(4.5, 1.2, 0xdcdcdc, [0.2, 4.6, -3.8], [0, 0.25, 0]);
 
-  // Side / back fill — shadowed metal → dark grey (not black)
-  softbox(8, 6, 0x585f6c, [-7.5, 1.2, 1.5], [0, 0.2, 0]);
-  softbox(8, 6, 0x545b68, [7.5, 1.2, 1.5], [0, 0.2, 0]);
-  softbox(12, 6, 0x3a4048, [0, 1.0, -7.5], [0, 0.2, 0]);
+  softbox(8, 6, 0x5a5a5a, [-7.5, 1.2, 1.5], [0, 0.2, 0]);
+  softbox(8, 6, 0x565656, [7.5, 1.2, 1.5], [0, 0.2, 0]);
+  softbox(12, 6, 0x3a3a3a, [0, 1.0, -7.5], [0, 0.2, 0]);
 
   const pmrem = new THREE.PMREMGenerator(gl);
   const rt = pmrem.fromScene(scene, 0.08);
@@ -154,7 +149,7 @@ type ShellShader = {
 
 function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#C9CED6'),
+    color: new THREE.Color('#D4D4D8'),
     metalness: 1,
     roughness: 0.14,
     clearcoat: 0,
@@ -217,7 +212,22 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
           return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
         }
 
+        // Per-tooth rounded cap in local (u,v): wide at gum, narrower + rounder at bite
+        float toothCapSDF(float u, float v) {
+          float vv = clamp(v, 0.0, 1.0);
+          // Strong lateral overlap at gum so neighbor round-rects seal (no white hairlines)
+          float hx = mix(0.72, 0.50, vv);
+          float hy = 0.505;
+          // Small corners at gumline (seal), ~28% width at biting edge
+          float corner = mix(0.06, 0.28, smoothstep(0.2, 0.95, vv));
+          vec2 p = vec2(u - 0.5, v - 0.5);
+          return sdRoundBox(p, vec2(hx, hy), min(corner, min(hx, hy) - 0.02));
+        }
+
         void main() {
+          float groove = 0.0;
+          float seam = 0.0;
+          float rim = 0.0;
         `,
       )
       .replace(
@@ -226,53 +236,73 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
         #include <clipping_planes_fragment>
         float ang = atan(vShellPos.x, vShellPos.z);
         float y = vShellPos.y;
+
+        // Pick the active tooth with the deepest (most negative) rounded mask
         int hit = -1;
         float hitStyle = 0.0;
-        float t0 = 0.0;
-        float t1 = 0.0;
-        float yLo = 0.0;
-        float yHi = 0.0;
+        float bestD = 1e5;
+        float secondD = 1e5;
+        float u = 0.5;
+        float v = 0.5;
+
         for (int i = 0; i < 16; i++) {
           float st = uStyles[i];
           if (st < 0.5) continue;
-          if (ang >= uA0[i] && ang <= uA1[i] && y >= uY0[i] && y <= uY1[i]) {
+          if (y < uY0[i] - 0.03 || y > uY1[i] + 0.03) continue;
+          float tu = (ang - uA0[i]) / max(uA1[i] - uA0[i], 1e-4);
+          float tv = (y - uY0[i]) / max(uY1[i] - uY0[i], 1e-4);
+          if (tu < -0.35 || tu > 1.35 || tv < -0.2 || tv > 1.2) continue;
+          float d = toothCapSDF(tu, tv);
+          if (d < bestD) {
+            secondD = bestD;
+            bestD = d;
             hit = i;
             hitStyle = st;
-            t0 = uA0[i]; t1 = uA1[i];
-            yLo = uY0[i]; yHi = uY1[i];
-            break;
+            u = tu; v = tv;
+          } else if (d < secondD) {
+            secondD = d;
           }
         }
-        if (hit < 0) discard;
 
-        float u = (ang - t0) / max(t1 - t0, 1e-4);
-        float v = (y - yLo) / max(yHi - yLo, 1e-4);
+        // Soft outer AA via fwidth; keep fully opaque inside so seams don't show teeth
+        float aa = max(fwidth(bestD) * 0.6, 0.0015);
+        if (hit < 0 || bestD > aa) discard;
+
         float faceDot = vShellNormal.z;
 
-        // Window: rounded opening — solid rim ~18% of tooth width
-        // Apply on front-ish faces; skip deep lingual so shell keeps a back wall
+        // Window opening inside the rounded mask (keep silver rim)
         if (hitStyle > 1.5 && hitStyle < 2.5 && faceDot > -0.15) {
-          vec2 p = vec2(u - 0.5, v - 0.48);
-          float d = sdRoundBox(p, vec2(0.34, 0.32), 0.09);
-          if (d < 0.0) discard;
+          vec2 wp = vec2(u - 0.5, v - 0.48);
+          float wd = sdRoundBox(wp, vec2(0.30, 0.28), 0.08);
+          float waa = max(fwidth(wd) * 0.6, 0.0015);
+          if (wd < -waa) discard;
         }
 
-        // Deep cut: 3 horizontal groove lines on labial face
-        float groove = 0.0;
+        // Deep cut grooves inside the rounded mask
         if (hitStyle > 2.5 && faceDot > 0.1) {
           float g1 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.36));
           float g2 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.52));
           float g3 = 1.0 - smoothstep(0.0, 0.022, abs(v - 0.68));
           groove = max(g1, max(g2, g3));
-          groove *= smoothstep(0.04, 0.12, u) * smoothstep(0.04, 0.12, 1.0 - u);
+          groove *= smoothstep(0.06, 0.16, u) * smoothstep(0.06, 0.16, 1.0 - u);
+          groove *= smoothstep(0.02, 0.0, bestD);
         }
+
+        // Faint dark seam between overlapping neighbors (thin, not a thick bar)
+        seam = (1.0 - smoothstep(0.0, 0.018, abs(bestD - secondD))) * step(secondD, 0.08);
+        float sideSeam = max(
+          1.0 - smoothstep(0.0, 0.035, u),
+          1.0 - smoothstep(0.0, 0.035, 1.0 - u)
+        );
+        seam = max(seam, sideSeam * 0.35);
+        // Edge highlight — brighter rim so the shell reads as real metal thickness
+        rim = (1.0 - smoothstep(0.0, 0.045, -bestD)) * step(bestD, 0.0);
         `,
       )
       .replace(
         '#include <lights_fragment_begin>',
         /* glsl */ `
         #include <lights_fragment_begin>
-        // Caps: drop scene key/fill — body + highlights come from dedicated envMap only
         reflectedLight.directDiffuse = vec3(0.0);
         reflectedLight.directSpecular = vec3(0.0);
         `,
@@ -282,13 +312,14 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
         /* glsl */ `
         if (groove > 0.01) {
           outgoingLight *= mix(1.0, 0.28, groove);
-          outgoingLight = mix(outgoingLight, vec3(0.12, 0.13, 0.15), groove * 0.75);
+          outgoingLight = mix(outgoingLight, vec3(0.14), groove * 0.75);
         }
-        // Soft-clamp highlights so ACES doesn't blow silver to pearl-white
+        outgoingLight += vec3(0.35) * rim;
+        outgoingLight *= mix(1.0, 0.42, seam * 0.95);
         outgoingLight = min(outgoingLight, vec3(0.84));
-        // Neutral grey — no blue chrome, no warm pearl
-        float luma = dot(outgoingLight, vec3(0.299, 0.587, 0.114));
-        outgoingLight = mix(outgoingLight, vec3(luma), 0.35);
+        // Force neutral silver (kill blue/warm env tint)
+        float luma = (outgoingLight.r + outgoingLight.g + outgoingLight.b) / 3.0;
+        outgoingLight = vec3(luma);
         #include <opaque_fragment>
         `,
       );
@@ -296,7 +327,7 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
     mat.userData.shader = shader as ShellShader;
   };
 
-  mat.customProgramCacheKey = () => 'silver-shell-mat-v9';
+  mat.customProgramCacheKey = () => 'silver-shell-mask-v6';
   return mat;
 }
 

@@ -135,11 +135,18 @@ function FrameArch({
       const aspect = size.width / Math.max(size.height, 1);
       const halfFov = THREE.MathUtils.degToRad(cam.fov) / 2;
       // Fill most of the hero frame — closer than builder so grillz read large
-      const dist = Math.max(1.85, 1.05 / (0.82 * Math.tan(halfFov) * Math.max(aspect, 0.85)));
-      cam.position.set(0.04 * dist, dist * 0.1, dist);
+      const dist = Math.max(2.05, 1.15 / (0.78 * Math.tan(halfFov) * Math.max(aspect, 0.85)));
+      cam.position.set(0.04 * dist, dist * 0.16, dist);
+      target.y -= 0.06;
     } else {
       const [cx, cy, cz] = cfg.position;
-      cam.position.set(cx, both ? cy + 0.05 : cy, both ? cz + 0.15 : cz);
+      // Raise + pull back so biting edge isn't clipped; leave padding below
+      cam.position.set(
+        cx,
+        both ? cy + 0.3 : cy + 0.38,
+        both ? cz + 0.7 : cz + 0.85,
+      );
+      target.y -= both ? 0.1 : 0.15;
     }
     cam.fov = cfg.fov;
     cam.lookAt(target);
@@ -449,6 +456,17 @@ export function GrillCanvas({
         />
       )}
 
+      {/* Hide dark dental-mold block above the gum */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 z-[15] h-[55%]"
+        style={{
+          background: isHero
+            ? 'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 50%, rgba(10,10,11,0.7) 78%, transparent 100%)'
+            : 'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 45%, rgba(10,10,11,0.65) 75%, transparent 100%)',
+        }}
+      />
+
       {showViewControls && !isHero && (
         <div className="absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1.5">
           <button
@@ -503,7 +521,7 @@ export function GrillCanvas({
           powerPreference: 'default',
           preserveDrawingBuffer: true,
         }}
-        style={{ background: 'transparent', backgroundColor: 'transparent' }}
+        style={{ background: 'transparent', backgroundColor: 'transparent', position: 'relative', zIndex: 0 }}
         onCreated={({ gl, scene }) => {
           gl.setClearColor(0x000000, 0);
           gl.domElement.style.background = 'transparent';

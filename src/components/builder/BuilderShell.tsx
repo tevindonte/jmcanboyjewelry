@@ -71,6 +71,14 @@ export function BuilderShell({
                 className="h-full min-h-[280px] w-full sm:min-h-[320px]"
                 showViewControls
               />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[52%]"
+                style={{
+                  background:
+                    'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 48%, rgba(10,10,11,0.75) 78%, transparent 100%)',
+                }}
+              />
             </div>
           ) : (
             <p className="rounded-md border border-border px-4 py-6 text-center text-sm text-steel">

@@ -78,6 +78,11 @@ Seed documents (custom IDs):
 | terms_accepted_ip | string 64 | |
 | shipping_address_json | string 2000 | |
 | tracking_number | string 120 | |
+| scan_file_id | string 64 | |
+| scan_filename | string 255 | |
+| scan_size_bytes | integer | |
+| scan_uploaded_at | string 40 | |
+| scan_status | string 32 (`received` / `approved` / `needs_new_scan` / empty) | |
 
 #### `order_events`
 | Attr | Type | Indexes |
@@ -108,7 +113,9 @@ Use Stripe event id as the document `$id` for idempotency.
 | source | string 64 |
 | fetched_at | string 40 |
 
-## 3. Storage bucket
+## 3. Storage buckets
+
+### `mold-photos`
 
 Create bucket ID: `mold-photos`  
 - **File security**: enabled  
@@ -117,6 +124,17 @@ Create bucket ID: `mold-photos`
 - **Allowed extensions** (console may ask for extensions, not MIME types):  
   `jpg`, `jpeg`, `png`  
 - The app converts HEIC / WebP / PNG uploads to **JPEG** before storing, so admin photo review works in browsers (iPhone HEIC is not displayable in most browsers).
+
+### `scans`
+
+Create bucket ID: `scans` (or set `APPWRITE_BUCKET_SCANS`)  
+- **File security**: enabled  
+- **Permissions**: none for guests (server API key only — no public read)  
+- Max file size: **50,000,000 bytes** (keep in sync with `siteConfig.dentistScan.maxBytes`)  
+- **Allowed extensions**: `stl`, `obj`, `ply`  
+- Used for optional dentist 3D scans on the order mold step.
+
+Appwrite Cloud free tier often allows only **one** storage bucket. If creating `scans` fails with a plan limit, either upgrade or temporarily set `APPWRITE_BUCKET_SCANS` to your existing private bucket ID and add `stl`, `obj`, `ply` to that bucket’s allowed extensions (still API-key only — no public read).
 
 ## 4. Admin user
 

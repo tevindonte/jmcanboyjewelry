@@ -4,18 +4,22 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { siteConfig } from '@/lib/site.config';
 import { pricing } from '@/lib/pricing.config';
+import { formatCents, fulfillmentChargesKitFee, type FulfillmentChoice } from '@/lib/pricing';
 
 export function CheckoutForm({
   designId,
   foundingAvailable,
+  depositWithoutKitCents,
 }: {
   designId: string;
   foundingAvailable: boolean;
+  /** Server-calculated deposit before kit fee (null if unpriced). */
+  depositWithoutKitCents: number | null;
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [fulfillment, setFulfillment] = useState<'kit_mail' | 'local_impression'>('kit_mail');
+  const [fulfillment, setFulfillment] = useState<FulfillmentChoice>('kit_mail');
   const [terms, setTerms] = useState(false);
   const [mediaConsent, setMediaConsent] = useState(false);
   const [honeypot, setHoneypot] = useState('');
@@ -25,6 +29,13 @@ export function CheckoutForm({
   const [postal, setPostal] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const kitFeeCents =
+    pricing.kitFee != null && fulfillmentChargesKitFee(fulfillment)
+      ? Math.round(pricing.kitFee * 100)
+      : 0;
+  const depositCents =
+    depositWithoutKitCents != null ? depositWithoutKitCents + kitFeeCents : null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,6 +127,9 @@ export function CheckoutForm({
               onChange={() => setFulfillment('kit_mail')}
             />
             Mail me an impression kit
+            {pricing.kitFee != null && (
+              <span className="text-xs text-steel">(+${pricing.kitFee} in deposit)</span>
+            )}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -125,8 +139,33 @@ export function CheckoutForm({
             />
             Local impression ({siteConfig.location})
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              checked={fulfillment === 'dentist_scan'}
+              onChange={() => setFulfillment('dentist_scan')}
+            />
+            I have a dentist 3D scan
+            <span className="text-xs text-steel">(no kit fee)</span>
+          </label>
         </div>
       </fieldset>
+
+      {depositCents != null && (
+        <p className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm">
+          Deposit due today:{' '}
+          <span className="font-medium text-silver-bright">{formatCents(depositCents)}</span>
+          {kitFeeCents > 0 && pricing.kitFee != null && (
+            <span className="text-text-muted">
+              {' '}
+              (includes ${pricing.kitFee} kit fee, credited to your total)
+            </span>
+          )}
+          {fulfillment === 'dentist_scan' && (
+            <span className="text-text-muted"> — kit fee waived for scan path</span>
+          )}
+        </p>
+      )}
 
       {fulfillment === 'kit_mail' && (
         <div className="space-y-3 rounded-md border border-border p-3">
@@ -216,7 +255,11 @@ export function CheckoutForm({
         disabled={loading}
         className="w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg disabled:opacity-50"
       >
-        {loading ? 'Redirecting to Stripe…' : 'Pay deposit'}
+        {loading
+          ? 'Redirecting to Stripe…'
+          : depositCents != null
+            ? `Pay deposit ${formatCents(depositCents)}`
+            : 'Pay deposit'}
       </button>
     </form>
   );

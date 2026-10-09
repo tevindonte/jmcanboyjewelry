@@ -23,6 +23,37 @@ export function formatScanLimit(): string {
   return siteConfig.dentistScan.maxLabel;
 }
 
+export type ScanValidationError = {
+  code: 'file_too_large' | 'invalid_type';
+  error: string;
+  maxBytes?: number;
+  maxLabel?: string;
+};
+
+/** Server-side type + size gate (used by upload route and tests). */
+export function validateScanUpload(input: {
+  filename: string;
+  mime: string;
+  size: number;
+}): ScanValidationError | null {
+  const maxBytes = siteConfig.dentistScan.maxBytes;
+  if (input.size > maxBytes) {
+    return {
+      code: 'file_too_large',
+      error: `File too large (max ${formatScanLimit()})`,
+      maxBytes,
+      maxLabel: formatScanLimit(),
+    };
+  }
+  if (!scanExtension(input.filename) || !isAllowedScanMime(input.mime, input.filename)) {
+    return {
+      code: 'invalid_type',
+      error: `Upload a .${siteConfig.dentistScan.extensions.join(', .')} file`,
+    };
+  }
+  return null;
+}
+
 export type ScanStatus = 'received' | 'approved' | 'needs_new_scan' | '';
 
 export function normalizeScanStatus(value: unknown): ScanStatus {

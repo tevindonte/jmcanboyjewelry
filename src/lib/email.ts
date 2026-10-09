@@ -117,6 +117,35 @@ export async function sendMoldReviewResult(opts: {
   });
 }
 
+export async function sendScanReviewResult(opts: {
+  to: string;
+  name: string;
+  approved: boolean;
+  reason?: string | null;
+  accessToken: string;
+}) {
+  const resend = getResend();
+  const link = `${siteUrl()}/order/${opts.accessToken}`;
+
+  await resend.emails.send({
+    from: fromAddress(),
+    to: opts.to,
+    subject: opts.approved
+      ? `Scan approved — ${siteConfig.brandName}`
+      : `Need a new scan — ${siteConfig.brandName}`,
+    html: `
+      <p>Hey ${opts.name},</p>
+      <p>${
+        opts.approved
+          ? 'Your dentist 3D scan looks good. We can start making your piece.'
+          : 'We need a new dentist 3D scan for your order.'
+      }</p>
+      ${opts.reason ? `<p><strong>Reason:</strong> ${opts.reason}</p>` : ''}
+      <p><a href="${link}">View your order</a></p>
+    `,
+  });
+}
+
 export async function sendLaunchEmail(opts: {
   to: string;
   name: string;

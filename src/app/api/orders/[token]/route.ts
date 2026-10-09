@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { findOne, getDoc, listDocs, col, Query } from '@/lib/db';
+import { z } from 'zod';
+import { findOne, getDoc, listDocs, updateDoc, createDoc, col, Query } from '@/lib/db';
+import { normalizeScanStatus } from '@/lib/scans';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export async function GET(
   _request: Request,
@@ -33,6 +36,17 @@ export async function GET(
     Query.limit(20),
   ]);
 
+  const scanFileId = String(order.scan_file_id || '');
+  const scan = scanFileId
+    ? {
+        file_id: scanFileId,
+        filename: String(order.scan_filename || ''),
+        size_bytes: Number(order.scan_size_bytes || 0),
+        uploaded_at: String(order.scan_uploaded_at || ''),
+        status: normalizeScanStatus(order.scan_status),
+      }
+    : null;
+
   return NextResponse.json({
     order: {
       id: order.$id,
@@ -61,5 +75,47 @@ export async function GET(
       reviewer_note: p.reviewer_note || null,
       created_at: p.$createdAt,
     })),
+    scan,
   });
+}
+
+const patchSchema = z.object({
+  /** Customer mold-step path choice (does not change Stripe amounts). */
+  fulfillment: z.enum(['kit_mail', 'local_impression', 'dentist_scan']).optional(),
+});
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const ip = clientIp(request.headers);
+  const rl = rateLimit(`order-patch:${ip}`, { limit: 30, windowMs: 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const { token } = await params;
+  const order = await findOne(col.orders, [Query.equal('access_token', token)]);
+  if (!order) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  if (['shipped', 'cancelled', 'refunded'].includes(String(order.status))) {
+    return NextResponse.json({ error: 'Order is closed' }, { status: 400 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success || !parsed.data.fulfillment) {
+    return NextResponse.json({ error: 'Invalid' }, { status: 400 });
+  }
+
+  await updateDoc(col.orders, order.$id, { fulfillment: parsed.data.fulfillment });
+  await createDoc(col.orderEvents, {
+    order_id: order.$id,
+    type: 'fulfillment_path',
+    note: `Customer chose ${parsed.data.fulfillment}`,
+  });
+
+  return NextResponse.json({ ok: true, fulfillment: parsed.data.fulfillment });
 }

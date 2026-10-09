@@ -27,6 +27,10 @@ export default function PrivacyPage() {
           <li>Design JSON from the builder</li>
           <li>Payment status via Stripe (we never store card numbers)</li>
           <li>Mold photos you upload (private storage, admin-only signed links)</li>
+          <li>
+            Optional dentist 3D scans (.stl / .obj / .ply) used only to make your piece (private
+            storage)
+          </li>
           <li>Order events and messages needed to fulfill the job</li>
         </ul>
 
@@ -36,14 +40,22 @@ export default function PrivacyPage() {
           short-lived signed links only.
         </p>
 
+        <h2 className="mt-10 font-display text-xl text-silver-bright">Dentist scans</h2>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          If you upload a dentist 3D scan, it is stored in a private bucket (API key only — no
+          public read). Used only to make your piece. You can delete it from your order link, or
+          email us to request deletion. Admins download via short-lived signed links.
+        </p>
+
         <h2 className="mt-10 font-display text-xl text-silver-bright">Deletion</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
-          You can request deletion of your data and mold photos. Email{' '}
+          You can request deletion of your data, mold photos, and scans. Email{' '}
           <a href={`mailto:${siteConfig.contactEmail}`} className="text-silver underline">
             {siteConfig.contactEmail}
           </a>
-          . Admin can also run a full delete from the order page. We may keep minimal records
-          required for taxes or fraud prevention where the law requires it.
+          . Use &quot;Delete my scan&quot; on your order link for scans. Admin can purge a scan or
+          run a full delete from the order page. We may keep minimal records required for taxes or
+          fraud prevention where the law requires it.
         </p>
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Email</h2>

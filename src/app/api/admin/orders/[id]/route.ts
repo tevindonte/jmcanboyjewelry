@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { orderStatusSchema } from '@/lib/validations';
-import { calculateEstimate, estimateOrderCost, type TeethMap } from '@/lib/pricing';
+import {
+  calculateEstimate,
+  estimateOrderCost,
+  type FulfillmentChoice,
+  type TeethMap,
+} from '@/lib/pricing';
 import { normalizeMetalId, type ArchChoice } from '@/lib/pricing.config';
 import { getSettings } from '@/lib/settings';
-import { sendMoldReviewResult } from '@/lib/email';
+import { sendMoldReviewResult, sendScanReviewResult } from '@/lib/email';
 import { createAdminClient } from '@/lib/appwrite/admin';
+import { normalizeScanStatus } from '@/lib/scans';
+import { scanDownloadUrl } from '@/lib/signed-download';
 import {
   getDoc,
   listDocs,
@@ -64,10 +71,25 @@ export async function GET(
   const cost = designDoc
     ? estimateOrderCost(
         teeth,
-        order.fulfillment as 'kit_mail' | 'local_impression',
+        order.fulfillment as FulfillmentChoice,
         snapSpot,
         Number(order.total_cents),
       )
+    : null;
+
+  const scanFileId = String(order.scan_file_id || '');
+  const scan = scanFileId
+    ? {
+        file_id: scanFileId,
+        filename: String(order.scan_filename || 'scan'),
+        size_bytes: Number(order.scan_size_bytes || 0),
+        uploaded_at: String(order.scan_uploaded_at || ''),
+        status: normalizeScanStatus(order.scan_status) || 'received',
+        download_url: scanDownloadUrl(
+          scanFileId,
+          String(order.scan_filename || 'scan'),
+        ),
+      }
     : null;
 
   return NextResponse.json({
@@ -93,6 +115,7 @@ export async function GET(
       created_at: e.$createdAt,
     })),
     photos: signed,
+    scan,
     cost,
     marginCents: cost?.marginCents ?? null,
   });
@@ -107,6 +130,9 @@ const patchSchema = z.object({
   waiveMediaConsent: z.boolean().optional(),
   /** Manual quote for gold (or friend) — sets total / deposit / balance. */
   price_override_cents: z.number().int().positive().optional().nullable(),
+  purgeScan: z.boolean().optional(),
+  scanStatus: z.enum(['approved', 'needs_new_scan']).optional(),
+  scanReason: z.string().max(2000).optional(),
 });
 
 export async function PATCH(
@@ -140,6 +166,14 @@ export async function PATCH(
       }
       await deleteDoc(col.moldPhotos, p.$id);
     }
+    const scanFileId = String(order.scan_file_id || '');
+    if (scanFileId) {
+      try {
+        await storage.deleteFile(APPWRITE.bucketScans, scanFileId);
+      } catch {
+        /* ignore */
+      }
+    }
     const { documents: events } = await listDocs(col.orderEvents, [
       Query.equal('order_id', id),
       Query.limit(500),
@@ -154,6 +188,60 @@ export async function PATCH(
       }
     }
     return NextResponse.json({ deleted: true });
+  }
+
+  if (parsed.data.purgeScan) {
+    const { storage } = createAdminClient();
+    const scanFileId = String(order.scan_file_id || '');
+    if (scanFileId) {
+      try {
+        await storage.deleteFile(APPWRITE.bucketScans, scanFileId);
+      } catch {
+        /* ignore */
+      }
+    }
+    await updateDoc(col.orders, id, {
+      scan_file_id: '',
+      scan_filename: '',
+      scan_size_bytes: 0,
+      scan_uploaded_at: '',
+      scan_status: '',
+    });
+    await createDoc(col.orderEvents, {
+      order_id: id,
+      type: 'scan_purged',
+      note: parsed.data.note ?? 'Admin purged dentist scan',
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (parsed.data.scanStatus) {
+    const status = parsed.data.scanStatus;
+    const reason = parsed.data.scanReason ?? parsed.data.note ?? '';
+    if (!String(order.scan_file_id || '')) {
+      return NextResponse.json({ error: 'No scan on this order' }, { status: 400 });
+    }
+    await updateDoc(col.orders, id, { scan_status: status });
+    if (status === 'approved') {
+      await updateDoc(col.orders, id, { status: 'mold_photos_approved' });
+    }
+    await createDoc(col.orderEvents, {
+      order_id: id,
+      type: status === 'approved' ? 'scan_approved' : 'scan_needs_new',
+      note: reason,
+    });
+    try {
+      await sendScanReviewResult({
+        to: String(order.email),
+        name: String(order.name),
+        approved: status === 'approved',
+        reason: reason || null,
+        accessToken: String(order.access_token),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    return NextResponse.json({ ok: true });
   }
 
   if (parsed.data.waiveMediaConsent) {
@@ -197,7 +285,7 @@ export async function PATCH(
     const estimate = calculateEstimate({
       arch: (designDoc?.arch as ArchChoice) ?? 'top',
       teeth,
-      fulfillment: order.fulfillment as 'kit_mail' | 'local_impression',
+      fulfillment: order.fulfillment as FulfillmentChoice,
       tier: order.tier as 'founding' | 'friend' | 'standard',
       appliedSpot: settings.applied_spot,
       metal,

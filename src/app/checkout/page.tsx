@@ -1,7 +1,10 @@
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CheckoutForm } from '@/components/CheckoutForm';
-import { getFoundingSlotsRemaining, getSettings } from '@/lib/settings';
+import { getFoundingSlotsRemaining, getSettings, resolvePublicTier } from '@/lib/settings';
+import { getDoc, col } from '@/lib/db';
+import { calculateEstimate, type TeethMap } from '@/lib/pricing';
+import { normalizeMetalId, type ArchChoice } from '@/lib/pricing.config';
 import { redirect } from 'next/navigation';
 
 export const metadata = { title: 'Checkout' };
@@ -23,6 +26,22 @@ export default async function CheckoutPage({
     redirect('/build');
   }
 
+  const design = await getDoc(col.designs, sp.design);
+  let depositWithoutKitCents: number | null = null;
+  if (design) {
+    const tier = await resolvePublicTier();
+    const teeth = JSON.parse(String(design.teeth_json ?? '{}')) as TeethMap;
+    const estimate = calculateEstimate({
+      arch: design.arch as ArchChoice,
+      teeth,
+      fulfillment: 'dentist_scan',
+      tier,
+      appliedSpot: settings.applied_spot,
+      metal: normalizeMetalId(design.metal),
+    });
+    depositWithoutKitCents = estimate.depositCents;
+  }
+
   return (
     <>
       <SiteHeader />
@@ -36,6 +55,7 @@ export default async function CheckoutPage({
           <CheckoutForm
             designId={sp.design}
             foundingAvailable={founding.remaining > 0}
+            depositWithoutKitCents={depositWithoutKitCents}
           />
         </div>
       </main>

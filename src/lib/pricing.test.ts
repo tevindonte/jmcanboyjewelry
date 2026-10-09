@@ -122,4 +122,32 @@ describe('calculateEstimate', () => {
     expect(result.totalCents).toBe(120000);
     expect(result.depositCents).toBe(60000);
   });
+
+  it('dentist_scan omits kit fee from deposit (kit_mail includes it)', () => {
+    const kit = calculateEstimate({
+      arch: 'top',
+      teeth: top6Plain,
+      fulfillment: 'kit_mail',
+      tier: 'standard',
+      appliedSpot: spot,
+      metal: 'silver',
+    });
+    const scan = calculateEstimate({
+      arch: 'top',
+      teeth: top6Plain,
+      fulfillment: 'dentist_scan',
+      tier: 'standard',
+      appliedSpot: spot,
+      metal: 'silver',
+    });
+
+    expect(kit.priced).toBe(true);
+    expect(scan.priced).toBe(true);
+    expect(kit.kitFeeCents).toBe(Math.round((pricing.kitFee ?? 0) * 100));
+    expect(scan.kitFeeCents).toBe(0);
+    expect(kit.totalCents).toBe(scan.totalCents);
+    expect(kit.depositCents).toBe((scan.depositCents ?? 0) + (kit.kitFeeCents ?? 0));
+    expect(scan.priceSnapshot?.kitFeeUsd).toBe(0);
+    expect(kit.priceSnapshot?.kitFeeUsd).toBe(pricing.kitFee);
+  });
 });

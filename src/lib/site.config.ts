@@ -32,10 +32,10 @@ export const siteConfig = {
   contactPhoneDisplay: '(860) 351-7405',
   /**
    * Dentist 3D scan uploads — keep maxBytes in sync with the Appwrite
-   * `scans` bucket max file size (Cloud free/pro default commonly 50 MB).
+   * `scans` bucket max file size (Cloud plan cap is 50_000_000 bytes).
    */
   dentistScan: {
-    maxBytes: 50 * 1024 * 1024,
+    maxBytes: 50_000_000,
     maxLabel: '50 MB',
     extensions: ['stl', 'obj', 'ply'] as const,
     mimeTypes: [

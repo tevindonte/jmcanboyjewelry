@@ -99,6 +99,11 @@ export async function POST(request: Request) {
         ? JSON.stringify(data.shippingAddress)
         : '',
       tracking_number: '',
+      scan_file_id: '',
+      scan_filename: '',
+      scan_size_bytes: 0,
+      scan_uploaded_at: '',
+      scan_status: '',
     });
 
     await createDoc(col.orderEvents, {

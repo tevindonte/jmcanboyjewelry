@@ -13,6 +13,7 @@ import {
   TablesDB,
   DatabasesIndexType,
   TablesDBIndexType,
+  Query,
 } from 'node-appwrite';
 
 loadEnv({ path: resolve(process.cwd(), '.env.local') });
@@ -97,6 +98,12 @@ const TABLES: TableDef[] = [
       { key: 'terms_accepted_ip', kind: 'string', size: 64 },
       { key: 'shipping_address_json', kind: 'string', size: 2000 },
       { key: 'tracking_number', kind: 'string', size: 120 },
+      /** Dentist 3D scan (private `scans` bucket). Empty string when none. */
+      { key: 'scan_file_id', kind: 'string', size: 64 },
+      { key: 'scan_filename', kind: 'string', size: 255 },
+      { key: 'scan_size_bytes', kind: 'integer' },
+      { key: 'scan_uploaded_at', kind: 'string', size: 40 },
+      { key: 'scan_status', kind: 'string', size: 32 },
     ],
     indexes: [
       { key: 'unique_access_token', type: 'unique', attrs: ['access_token'] },
@@ -282,7 +289,11 @@ function createTablesDriver(tables: TablesDB, databaseId: string): Driver {
       }
     },
     async listColumns(tableId) {
-      const res = await tables.listColumns({ databaseId, tableId });
+      const res = await tables.listColumns({
+        databaseId,
+        tableId,
+        queries: [Query.limit(100)],
+      });
       return res.columns as unknown as AttrLike[];
     },
     async createColumn(tableId, col) {
@@ -315,7 +326,11 @@ function createTablesDriver(tables: TablesDB, databaseId: string): Driver {
       }
     },
     async listIndexes(tableId) {
-      const res = await tables.listIndexes({ databaseId, tableId });
+      const res = await tables.listIndexes({
+        databaseId,
+        tableId,
+        queries: [Query.limit(100)],
+      });
       return res.indexes as unknown as IndexLike[];
     },
     async createIndex(tableId, idx) {
@@ -378,7 +393,11 @@ function createCollectionsDriver(databases: Databases, databaseId: string): Driv
       }
     },
     async listColumns(tableId) {
-      const res = await databases.listAttributes({ databaseId, collectionId: tableId });
+      const res = await databases.listAttributes({
+        databaseId,
+        collectionId: tableId,
+        queries: [Query.limit(100)],
+      });
       return res.attributes as unknown as AttrLike[];
     },
     async createColumn(tableId, col) {

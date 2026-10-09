@@ -30,6 +30,14 @@ type Detail = {
     reviewer_note: string | null;
     url: string | null;
   }[];
+  scan: {
+    file_id: string;
+    filename: string;
+    size_bytes: number;
+    uploaded_at: string;
+    status: string;
+    download_url: string;
+  } | null;
   cost: {
     totalCostUsd: number | null;
     foundryUsd: number | null;
@@ -120,8 +128,31 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
     setMsg(res.ok ? 'Balance link emailed' : j.error ?? 'Failed');
   }
 
+  async function reviewScan(scanStatus: 'approved' | 'needs_new_scan') {
+    const reason =
+      scanStatus === 'needs_new_scan'
+        ? note || window.prompt('Reason for needing a new scan') || ''
+        : note;
+    if (scanStatus === 'needs_new_scan' && !reason.trim()) {
+      setMsg('Reason required to reject a scan');
+      return;
+    }
+    const res = await fetch(`/api/admin/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scanStatus, scanReason: reason }),
+    });
+    if (res.ok) {
+      setMsg(scanStatus === 'approved' ? 'Scan approved' : 'Scan needs new upload');
+      await load();
+    } else {
+      const j = await res.json();
+      setMsg(j.error ?? 'Failed');
+    }
+  }
+
   if (!data) return <main className="p-8 text-text-muted">Loading…</main>;
-  const { order, photos, events, cost, marginCents } = data;
+  const { order, photos, scan, events, cost, marginCents } = data;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -285,6 +316,59 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             Delete data
           </button>
         </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="font-display text-lg text-silver-bright">Dentist scan</h2>
+        {scan ? (
+          <div className="mt-3 rounded-md border border-border p-3 text-sm">
+            <p>
+              <a href={scan.download_url} className="text-silver underline">
+                Download {scan.filename}
+              </a>
+              <span className="text-text-muted">
+                {' '}
+                · {(scan.size_bytes / (1024 * 1024)).toFixed(1)} MB ·{' '}
+                {scan.status.replace(/_/g, ' ')}
+              </span>
+            </p>
+            {scan.uploaded_at && (
+              <p className="mt-1 text-xs text-steel">
+                Uploaded {new Date(scan.uploaded_at).toLocaleString()}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-steel">Signed link expires in ~15 minutes.</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => reviewScan('approved')}
+                className="text-xs text-ok underline"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => reviewScan('needs_new_scan')}
+                className="text-xs text-danger underline"
+              >
+                Needs new scan
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Permanently delete this scan file?')) {
+                    patch({ purgeScan: true, note: 'Admin purged dentist scan' });
+                  }
+                }}
+                className="text-xs text-danger underline"
+              >
+                Purge scan
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-text-muted">No scan uploaded.</p>
+        )}
       </section>
 
       <section className="mt-8">

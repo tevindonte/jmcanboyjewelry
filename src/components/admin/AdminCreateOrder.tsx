@@ -17,9 +17,9 @@ export function AdminCreateOrder({ onCreated }: { onCreated: () => void }) {
   const [arch, setArch] = useState<'top' | 'bottom' | 'both'>('top');
   const [tier, setTier] = useState<'friend' | 'founding' | 'standard'>('friend');
   const [overrideUsd, setOverrideUsd] = useState('');
-  const [fulfillment, setFulfillment] = useState<'kit_mail' | 'local_impression'>(
-    'local_impression',
-  );
+  const [fulfillment, setFulfillment] = useState<
+    'kit_mail' | 'local_impression' | 'dentist_scan'
+  >('local_impression');
   const [note, setNote] = useState('');
   const [markDeposit, setMarkDeposit] = useState(true);
   const [markBalance, setMarkBalance] = useState(false);
@@ -128,6 +128,7 @@ export function AdminCreateOrder({ onCreated }: { onCreated: () => void }) {
         >
           <option value="local_impression">local impression</option>
           <option value="kit_mail">kit mail</option>
+          <option value="dentist_scan">dentist scan</option>
         </select>
         {tier === 'friend' && (
           <input

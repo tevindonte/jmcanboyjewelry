@@ -331,12 +331,13 @@ function Scene({
         {showBackdrop && (
           <ContactShadows
             position={[0, -0.35, 0.2]}
-            opacity={0.35}
-            scale={4}
-            blur={2.2}
-            far={2.5}
+            opacity={0.14}
+            scale={3.2}
+            blur={3.8}
+            far={1.8}
             resolution={256}
-            color="#1a1210"
+            color="#000000"
+            frames={1}
           />
         )}
       </group>
@@ -445,28 +446,6 @@ export function GrillCanvas({
       role="img"
       aria-label="3D grill style preview"
     >
-      {isHero && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              'radial-gradient(ellipse 48% 40% at 50% 50%, rgba(190,200,215,0.26) 0%, rgba(120,130,150,0.08) 44%, transparent 70%)',
-          }}
-        />
-      )}
-
-      {/* Hide dark dental-mold block above the gum */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 z-[15] h-[55%]"
-        style={{
-          background: isHero
-            ? 'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 50%, rgba(10,10,11,0.7) 78%, transparent 100%)'
-            : 'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 45%, rgba(10,10,11,0.65) 75%, transparent 100%)',
-        }}
-      />
-
       {showViewControls && !isHero && (
         <div className="absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1.5">
           <button
@@ -508,56 +487,60 @@ export function GrillCanvas({
         />
       )}
 
-      <Canvas
-        camera={{
-          position: [...modelConfig.camera.position],
-          fov: modelConfig.camera.fov,
-        }}
-        dpr={[1, 1.75]}
-        gl={{
-          antialias: true,
-          alpha: true,
-          premultipliedAlpha: false,
-          powerPreference: 'default',
-          preserveDrawingBuffer: true,
-        }}
-        style={{ background: 'transparent', backgroundColor: 'transparent', position: 'relative', zIndex: 0 }}
-        onCreated={({ gl, scene }) => {
-          gl.setClearColor(0x000000, 0);
-          gl.domElement.style.background = 'transparent';
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
-          // Keep highlights ~90–95% — no pure-white clip on enamel
-          gl.toneMappingExposure = 0.86;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
-          scene.background = null;
-          scene.fog = null;
-        }}
-        onError={() => onFallback()}
-        onPointerDown={() => {
-          if (autoRotate && !isHero) setAutoRotate(false);
-        }}
-      >
-        <Suspense fallback={null}>
-          <CaptureBridge apiRef={apiRef} />
-          <Scene
-            autoRotate={autoRotate && !reducedMotion}
-            onToothClick={handleTooth}
-            onToothHover={setHovered}
-            interactive={interactive || isHero}
-            forceArch={forceArch}
-            forceTeeth={forceTeeth}
-            forceSelected={forceSelected}
-            mode={mode}
-            resetToken={resetToken}
-            debug={debug && !isHero}
-            anchors={anchors}
-            regions={regions}
-            backdropFailed={backdropFailed}
-            onBackdropFailed={() => setBackdropFailed(true)}
-          />
-        </Suspense>
-      </Canvas>
+      <div className="grill-canvas-mask-y h-full w-full bg-transparent">
+        <div className="grill-canvas-mask-edge">
+          <Canvas
+            camera={{
+              position: [...modelConfig.camera.position],
+              fov: modelConfig.camera.fov,
+            }}
+            dpr={[1, 1.75]}
+            gl={{
+              antialias: true,
+              alpha: true,
+              premultipliedAlpha: false,
+              powerPreference: 'default',
+              preserveDrawingBuffer: true,
+            }}
+            style={{ background: 'transparent', backgroundColor: 'transparent' }}
+            onCreated={({ gl, scene }) => {
+              gl.setClearColor(0x000000, 0);
+              gl.domElement.style.background = 'transparent';
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              // Keep highlights ~90–95% — no pure-white clip on enamel
+              gl.toneMappingExposure = 0.86;
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = THREE.PCFSoftShadowMap;
+              scene.background = null;
+              scene.fog = null;
+            }}
+            onError={() => onFallback()}
+            onPointerDown={() => {
+              if (autoRotate && !isHero) setAutoRotate(false);
+            }}
+          >
+            <Suspense fallback={null}>
+              <CaptureBridge apiRef={apiRef} />
+              <Scene
+                autoRotate={autoRotate && !reducedMotion}
+                onToothClick={handleTooth}
+                onToothHover={setHovered}
+                interactive={interactive || isHero}
+                forceArch={forceArch}
+                forceTeeth={forceTeeth}
+                forceSelected={forceSelected}
+                mode={mode}
+                resetToken={resetToken}
+                debug={debug && !isHero}
+                anchors={anchors}
+                regions={regions}
+                backdropFailed={backdropFailed}
+                onBackdropFailed={() => setBackdropFailed(true)}
+              />
+            </Suspense>
+          </Canvas>
+        </div>
+      </div>
     </div>
   );
 }

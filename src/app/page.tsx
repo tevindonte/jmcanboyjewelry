@@ -106,14 +106,6 @@ export default async function HomePage() {
             </div>
             <div className="order-2 relative isolate flex h-[min(88vw,520px)] min-h-[360px] w-full min-w-0 items-center justify-center self-center pb-4 lg:h-[min(68vh,620px)] lg:max-h-[calc(100dvh-8rem)] lg:pb-0">
               <HeroGrill />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[55%]"
-                style={{
-                  background:
-                    'linear-gradient(to bottom, #0a0a0b 0%, #0a0a0b 52%, rgba(10,10,11,0.8) 80%, transparent 100%)',
-                }}
-              />
             </div>
           </div>
         </section>

@@ -89,3 +89,64 @@ h3,
   white-space: nowrap;
   border: 0;
 }
+
+/* Soft-edge transparent 3D preview — page gradient shows through.
+   Nested masks (not multi-layer composite) so the top fade isn't filled back in. */
+.grill-canvas-mask-y {
+  background: transparent !important;
+  /* Hero/build: mold tops ~35–44%; gum ~45–52%; teeth below.
+     Stay clear through mold, snap opaque at gum, soft bottom melt. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.45) 46%,
+    black 51%,
+    black 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.45) 46%,
+    black 51%,
+    black 90%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.grill-canvas-mask-edge {
+  background: transparent !important;
+  height: 100%;
+  width: 100%;
+  /* Soft melt on left/right (~8–10%) */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.grill-canvas-mask-y canvas,
+.grill-canvas-mask-edge canvas {
+  background: transparent !important;
+  background-color: transparent !important;
+}

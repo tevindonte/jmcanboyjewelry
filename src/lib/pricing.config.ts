@@ -17,10 +17,12 @@ export const pricing = {
   /**
    * Mailed kits only. Confirmed: $30 — charged in the deposit, credited so
    * customer total stays the grill price. Non-refundable once kit ships.
-   * Local impressions: no kit fee.
+   * Local impressions + dentist scans: no kit fee.
    */
   kitFee: 30 as number | null,
   kitCreditedToBalance: true,
+  /** Only these fulfillment paths include the kit fee in the deposit. */
+  kitFeeFulfillments: ['kit_mail'] as const,
   depositPercent: 50,
   founding: {
     enabled: true,

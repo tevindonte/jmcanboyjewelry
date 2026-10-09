@@ -30,6 +30,25 @@ export const siteConfig = {
   /** Google Voice business line */
   contactPhone: '8603517405',
   contactPhoneDisplay: '(860) 351-7405',
+  /**
+   * Dentist 3D scan uploads — keep maxBytes in sync with the Appwrite
+   * `scans` bucket max file size (Cloud free/pro default commonly 50 MB).
+   */
+  dentistScan: {
+    maxBytes: 50 * 1024 * 1024,
+    maxLabel: '50 MB',
+    extensions: ['stl', 'obj', 'ply'] as const,
+    mimeTypes: [
+      'model/stl',
+      'application/sla',
+      'application/vnd.ms-pki.stl',
+      'model/obj',
+      'text/plain',
+      'application/octet-stream',
+      'application/ply',
+      'model/ply',
+    ] as const,
+  },
 } as const;
 
 export type SiteMode = 'waitlist' | 'preorder' | 'closed';

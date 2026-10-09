@@ -29,10 +29,12 @@ export type PriceSnapshot = {
   frozenAt: string;
 };
 
+export type FulfillmentChoice = 'kit_mail' | 'local_impression' | 'dentist_scan';
+
 export type EstimateInput = {
   arch: ArchChoice;
   teeth: TeethMap;
-  fulfillment: 'kit_mail' | 'local_impression';
+  fulfillment: FulfillmentChoice;
   tier: OrderTier;
   /** Spot currently applied to live prices (from settings). */
   appliedSpot: number;
@@ -41,6 +43,11 @@ export type EstimateInput = {
   /** Friend / gold quote: manual total in cents overrides estimate. */
   priceOverrideCents?: number | null;
 };
+
+/** Whether this fulfillment path includes the mailed-kit fee in the deposit. */
+export function fulfillmentChargesKitFee(fulfillment: FulfillmentChoice): boolean {
+  return (pricing.kitFeeFulfillments as readonly string[]).includes(fulfillment);
+}
 
 export type EstimateResult = {
   priced: boolean;
@@ -419,12 +426,11 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
       unitPricesUsd,
       metalAdjustUsd: metalAdj,
       platingFeeCents,
-      kitFeeCents:
-        input.fulfillment === 'kit_mail'
-          ? pricing.kitFee != null
-            ? usdToCents(pricing.kitFee)
-            : null
-          : 0,
+      kitFeeCents: fulfillmentChargesKitFee(input.fulfillment)
+        ? pricing.kitFee != null
+          ? usdToCents(pricing.kitFee)
+          : null
+        : 0,
     });
   }
 
@@ -462,7 +468,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
   }
 
   let kitFeeCents = 0;
-  if (input.fulfillment === 'kit_mail') {
+  if (fulfillmentChargesKitFee(input.fulfillment)) {
     if (pricing.kitFee === null) {
       return unpricedResult({
         tier,
@@ -507,7 +513,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     tier,
     foundingDiscountPercent:
       tier === 'founding' ? pricing.founding.discountPercent : null,
-    kitFeeUsd: input.fulfillment === 'kit_mail' ? pricing.kitFee : 0,
+    kitFeeUsd: fulfillmentChargesKitFee(input.fulfillment) ? pricing.kitFee : 0,
     minimumOrderUsd: pricing.minimumOrder,
     frozenAt: new Date().toISOString(),
   };
@@ -561,7 +567,7 @@ export function formatUsd(usd: number | null | undefined): string {
 /** Admin margin: foundry + internal costs. */
 export function estimateOrderCost(
   teeth: TeethMap,
-  fulfillment: 'kit_mail' | 'local_impression',
+  fulfillment: FulfillmentChoice,
   appliedSpot: number,
   totalCents: number | null,
 ) {
@@ -580,7 +586,7 @@ export function estimateOrderCost(
 
   const hasArch = toothCount > 0;
   const resin = hasArch ? costs.resinPerArchUsd : 0;
-  const kit = fulfillment === 'kit_mail' ? costs.kitCostUsd : 0;
+  const kit = fulfillmentChargesKitFee(fulfillment) ? costs.kitCostUsd : 0;
   const shipping = costs.shippingUsd;
 
   const parts: Array<number | null> = [

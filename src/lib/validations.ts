@@ -28,7 +28,7 @@ export const depositCheckoutSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(120),
   phone: z.string().max(40).optional().nullable(),
-  fulfillment: z.enum(['kit_mail', 'local_impression']),
+  fulfillment: z.enum(['kit_mail', 'local_impression', 'dentist_scan']),
   termsAccepted: z.literal(true),
   /** Required for founding-tier public checkout. */
   mediaConsent: z.boolean().optional(),
@@ -64,7 +64,7 @@ export const adminCreateOrderSchema = z.object({
   arch: archSchema,
   teeth: teethMapSchema,
   metal: metalSchema.default('silver'),
-  fulfillment: z.enum(['kit_mail', 'local_impression']),
+  fulfillment: z.enum(['kit_mail', 'local_impression', 'dentist_scan']),
   tier: orderTierSchema,
   priceOverrideCents: z.number().int().positive().optional().nullable(),
   markDepositPaid: z.boolean().optional(),

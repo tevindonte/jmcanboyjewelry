@@ -20,17 +20,21 @@ import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import {
   cloneToothAnchors,
+  cloneToothRegions,
   modelConfig,
   type ToothAnchor,
+  type ToothRegion,
 } from '@/lib/model.config';
 import { useBuilderStore } from '@/store/builder-store';
 import { PlaceholderArch, heroShowcaseTeeth } from './PlaceholderArch';
 import { ImportedTeethBase } from './ImportedTeethBase';
+import { SilverShellLayer, ToothRegionGizmos } from './SilverShellLayer';
 import {
   ToothAnchorDebugGizmos,
   ToothAnchorDebugPanel,
   useDebugMode,
 } from './ToothAnchorDebug';
+import { ToothRegionDebugPanel } from './ToothRegionDebug';
 import type { ToothId, TeethMap } from '@/lib/pricing';
 import type { ArchChoice } from '@/lib/pricing.config';
 
@@ -212,6 +216,7 @@ function Scene({
   resetToken,
   debug,
   anchors,
+  regions,
   backdropFailed,
   onBackdropFailed,
 }: {
@@ -226,6 +231,7 @@ function Scene({
   resetToken: number;
   debug: boolean;
   anchors: Record<ToothId, ToothAnchor>;
+  regions: Record<ToothId, ToothRegion>;
   backdropFailed: boolean;
   onBackdropFailed: () => void;
 }) {
@@ -240,7 +246,8 @@ function Scene({
   const backdropUrl = modelConfig.backdropUrl;
   const showBackdrop = Boolean(backdropUrl) && !backdropFailed;
   const hideNatural = showBackdrop && modelConfig.hideProceduralBase;
-  const hideCaps = Boolean(modelConfig.hideCaps) && !isHero;
+  const useShell = Boolean(modelConfig.useShellGrillz) && !isHero && showBackdrop;
+  const hideCaps = (Boolean(modelConfig.hideCaps) || useShell) && !isHero;
   const teethForCaps = hideCaps ? ({} as TeethMap) : teeth;
   const importedArch =
     arch === 'top' ? 'top' : arch === 'bottom' ? 'bottom' : 'both';
@@ -266,6 +273,21 @@ function Scene({
             </Suspense>
           </BackdropErrorBoundary>
         )}
+        {useShell && backdropUrl && (
+          <Suspense fallback={null}>
+            <SilverShellLayer
+              url={backdropUrl}
+              position={t.position}
+              rotation={t.rotation}
+              scale={t.scale}
+              arch={arch}
+              teeth={teeth}
+              regions={regions}
+              onToothClick={onToothClick}
+              interactive={interactive}
+            />
+          </Suspense>
+        )}
         {!hideCaps && (
           <PlaceholderArch
             arch={arch}
@@ -282,7 +304,17 @@ function Scene({
             anchors={hideNatural ? anchors : undefined}
           />
         )}
-        {debug && hideNatural && (
+        {debug && useShell && (
+          <ToothRegionGizmos
+            regions={regions}
+            arch={arch}
+            activeId={storeSelected[0] ?? null}
+            position={t.position}
+            rotation={t.rotation}
+            scale={t.scale}
+          />
+        )}
+        {debug && hideNatural && !useShell && (
           <ToothAnchorDebugGizmos
             anchors={anchors}
             activeId={storeSelected[0] ?? null}
@@ -336,7 +368,9 @@ export function GrillCanvas({
   const [resetToken, setResetToken] = useState(0);
   const [backdropFailed, setBackdropFailed] = useState(false);
   const [anchors, setAnchors] = useState(() => cloneToothAnchors());
+  const [regions, setRegions] = useState(() => cloneToothRegions());
   const debug = useDebugMode();
+  const useShellDebug = Boolean(modelConfig.useShellGrillz);
   const shellRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<{ screenshot: () => void; reset: () => void } | null>(null);
 
@@ -440,7 +474,14 @@ export function GrillCanvas({
         </div>
       )}
 
-      {debug && !isHero && (
+      {debug && !isHero && useShellDebug && (
+        <ToothRegionDebugPanel
+          regions={regions}
+          onChange={setRegions}
+          selectedId={selected[0] ?? null}
+        />
+      )}
+      {debug && !isHero && !useShellDebug && (
         <ToothAnchorDebugPanel
           anchors={anchors}
           onChange={setAnchors}
@@ -492,6 +533,7 @@ export function GrillCanvas({
             resetToken={resetToken}
             debug={debug && !isHero}
             anchors={anchors}
+            regions={regions}
             backdropFailed={backdropFailed}
             onBackdropFailed={() => setBackdropFailed(true)}
           />

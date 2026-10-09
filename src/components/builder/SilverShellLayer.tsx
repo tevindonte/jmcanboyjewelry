@@ -6,8 +6,8 @@ import { Html, useGLTF } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TeethMap, ToothId } from '@/lib/pricing';
-import type { ToothStyle } from '@/lib/pricing.config';
-import type { ArchChoice } from '@/lib/pricing.config';
+import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
+import { CAP_METAL_LOOK } from '@/lib/cap-metal';
 import {
   modelConfig,
   toothIndex,
@@ -147,15 +147,21 @@ type ShellShader = {
   uniforms: Record<string, { value: Float32Array | number }>;
 };
 
-function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.MeshPhysicalMaterial {
+function createCapMaterial(
+  envMap: THREE.Texture,
+  inflate: number,
+  metal: MetalId,
+): THREE.MeshPhysicalMaterial {
+  const look = CAP_METAL_LOOK[metal];
+  const desaturate = metal === 'silver';
   const mat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#D4D4D8'),
+    color: new THREE.Color(look.color),
     metalness: 1,
-    roughness: 0.14,
+    roughness: look.roughness,
     clearcoat: 0,
     clearcoatRoughness: 0,
     envMap,
-    envMapIntensity: 1.55,
+    envMapIntensity: look.envMapIntensity,
     emissive: new THREE.Color('#000000'),
     emissiveIntensity: 0,
     transparent: false,
@@ -317,9 +323,15 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
         outgoingLight += vec3(0.35) * rim;
         outgoingLight *= mix(1.0, 0.42, seam * 0.95);
         outgoingLight = min(outgoingLight, vec3(0.84));
-        // Force neutral silver (kill blue/warm env tint)
+        ${
+          desaturate
+            ? /* glsl */ `
+        // Neutral silver — kill blue/warm env tint
         float luma = (outgoingLight.r + outgoingLight.g + outgoingLight.b) / 3.0;
         outgoingLight = vec3(luma);
+        `
+            : ''
+        }
         #include <opaque_fragment>
         `,
       );
@@ -327,7 +339,7 @@ function createSilverMaterial(envMap: THREE.Texture, inflate: number): THREE.Mes
     mat.userData.shader = shader as ShellShader;
   };
 
-  mat.customProgramCacheKey = () => 'silver-shell-mask-v6';
+  mat.customProgramCacheKey = () => `cap-shell-mask-v7-${metal}`;
   return mat;
 }
 
@@ -379,6 +391,7 @@ export function SilverShellLayer({
   regions,
   onToothClick,
   interactive = true,
+  metal = 'silver',
 }: {
   url: string;
   position: [number, number, number];
@@ -389,12 +402,13 @@ export function SilverShellLayer({
   regions: Record<ToothId, ToothRegion>;
   onToothClick: (id: ToothId) => void;
   interactive?: boolean;
+  metal?: MetalId;
 }) {
   const { scene } = useGLTF(url);
   const { gl } = useThree();
   const matRef = useRef<THREE.MeshPhysicalMaterial | null>(null);
 
-  // Dedicated env for silver only — does not touch scene.environment
+  // Dedicated env for caps only — does not touch scene.environment
   const envMap = useMemo(() => buildSilverStudioEnv(gl), [gl]);
 
   useEffect(() => {
@@ -417,16 +431,22 @@ export function SilverShellLayer({
   }, [scene]);
 
   const material = useMemo(
-    () => createSilverMaterial(envMap, modelConfig.shellInflate),
-    [envMap],
+    () => createCapMaterial(envMap, modelConfig.shellInflate, metal),
+    // Recreate when metal changes so color/roughness swap with the same SDF shader path
+    [envMap, metal],
   );
 
   useEffect(() => {
     matRef.current = material;
+    const look = CAP_METAL_LOOK[metal];
+    material.color.set(look.color);
+    material.roughness = look.roughness;
+    material.envMapIntensity = look.envMapIntensity;
+    material.needsUpdate = true;
     return () => {
       material.dispose();
     };
-  }, [material]);
+  }, [material, metal]);
 
   // Push uniforms every frame until shader compiles, then on changes
   useEffect(() => {

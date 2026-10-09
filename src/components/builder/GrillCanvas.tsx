@@ -36,7 +36,7 @@ import {
 } from './ToothAnchorDebug';
 import { ToothRegionDebugPanel } from './ToothRegionDebug';
 import type { ToothId, TeethMap } from '@/lib/pricing';
-import type { ArchChoice } from '@/lib/pricing.config';
+import type { ArchChoice, MetalId } from '@/lib/pricing.config';
 
 function StudioEnvironment() {
   // Low env so teeth aren't washed to flat white — key/fill/rim do the shaping
@@ -220,6 +220,7 @@ function Scene({
   forceArch,
   forceTeeth,
   forceSelected,
+  forceMetal,
   mode,
   resetToken,
   debug,
@@ -235,6 +236,7 @@ function Scene({
   forceArch?: ArchChoice;
   forceTeeth?: TeethMap;
   forceSelected?: ToothId[];
+  forceMetal?: MetalId;
   mode: 'builder' | 'hero';
   resetToken: number;
   debug: boolean;
@@ -247,9 +249,11 @@ function Scene({
   const storeTeeth = useBuilderStore((s) => s.teeth);
   const storeSelected = useBuilderStore((s) => s.selected);
   const storeHovered = useBuilderStore((s) => s.hovered);
+  const storeMetal = useBuilderStore((s) => s.metal);
   const arch = forceArch ?? storeArch;
   const teeth = forceTeeth ?? storeTeeth;
   const selected = forceSelected ?? storeSelected;
+  const metal = forceMetal ?? storeMetal;
   const isHero = mode === 'hero';
   const backdropUrl = modelConfig.backdropUrl;
   const showBackdrop = Boolean(backdropUrl) && !backdropFailed;
@@ -284,6 +288,7 @@ function Scene({
         {useShell && backdropUrl && (
           <Suspense fallback={null}>
             <SilverShellLayer
+              key={`shell-${metal}`}
               url={backdropUrl}
               position={t.position}
               rotation={t.rotation}
@@ -293,6 +298,7 @@ function Scene({
               regions={regions}
               onToothClick={onToothClick}
               interactive={interactive}
+              metal={metal}
             />
           </Suspense>
         )}
@@ -310,6 +316,7 @@ function Scene({
             float={isHero}
             hideNaturalBase={hideNatural}
             anchors={hideNatural ? anchors : undefined}
+            metal={metal}
           />
         )}
         {debug && useShell && (
@@ -360,12 +367,15 @@ export function GrillCanvas({
   interactive = true,
   mode = 'builder',
   showViewControls = false,
+  forceMetal,
 }: {
   onFallback: () => void;
   className?: string;
   interactive?: boolean;
   mode?: 'builder' | 'hero';
   showViewControls?: boolean;
+  /** Hero metal cycle (overrides store). */
+  forceMetal?: MetalId;
 }) {
   const router = useRouter();
   const tapTooth = useBuilderStore((s) => s.tapTooth);
@@ -531,6 +541,7 @@ export function GrillCanvas({
                 forceArch={forceArch}
                 forceTeeth={forceTeeth}
                 forceSelected={forceSelected}
+                forceMetal={forceMetal}
                 mode={mode}
                 resetToken={resetToken}
                 debug={debug && !isHero}

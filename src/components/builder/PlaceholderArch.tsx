@@ -3,10 +3,10 @@
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import type { ToothStyle } from '@/lib/pricing.config';
+import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
 import type { TeethMap, ToothId } from '@/lib/pricing';
 import { toothIdsForArch } from '@/lib/pricing';
-import type { ArchChoice } from '@/lib/pricing.config';
+import { CAP_METAL_LOOK } from '@/lib/cap-metal';
 import type { ToothAnchor } from '@/lib/model.config';
 
 /** U-arch — sized so FrameArch can fill ~75% of the canvas. */
@@ -227,14 +227,17 @@ function createNaturalGeometry(id: ToothId): THREE.BufferGeometry {
   return geo;
 }
 
-function makeSilver(opts: { hovered?: boolean; selected?: boolean } = {}) {
-  const { hovered, selected } = opts;
+function makeCapMetal(
+  metal: MetalId,
+  opts: { hovered?: boolean; selected?: boolean } = {},
+) {
+  const look = CAP_METAL_LOOK[metal];
+  const highlight = Boolean(opts.hovered || opts.selected);
   return new THREE.MeshStandardMaterial({
-    // Light sterling — mid-gray body, soft highlights; only crevices go dark
-    color: hovered || selected ? '#e8ebf0' : '#d4d8e0',
+    color: highlight ? look.hoverColor : look.color,
     metalness: 1,
-    roughness: hovered ? 0.15 : 0.18,
-    envMapIntensity: hovered || selected ? 1.7 : 1.55,
+    roughness: highlight ? Math.max(0.12, look.roughness - 0.02) : look.roughness + 0.04,
+    envMapIntensity: highlight ? look.envMapIntensity + 0.15 : look.envMapIntensity,
     emissive: new THREE.Color('#000000'),
     emissiveIntensity: 0,
   });
@@ -293,6 +296,7 @@ function ToothUnit({
   heroMode,
   hideNatural,
   anchor,
+  metal,
 }: {
   id: ToothId;
   style: ToothStyle;
@@ -306,6 +310,7 @@ function ToothUnit({
   hideNatural?: boolean;
   /** Optional backdrop-aligned transform (from modelConfig.toothAnchors). */
   anchor?: ToothAnchor;
+  metal: MetalId;
 }) {
   const [localHover, setLocalHover] = useState(false);
   const hovered = localHover || storeHovered;
@@ -324,9 +329,9 @@ function ToothUnit({
   );
 
   const enamel = useMemo(() => makeEnamel({ hovered: hovered && !capped }), [hovered, capped]);
-  const silver = useMemo(
-    () => makeSilver({ hovered, selected: selected && !heroMode }),
-    [hovered, selected, heroMode],
+  const capMat = useMemo(
+    () => makeCapMetal(metal, { hovered, selected: selected && !heroMode }),
+    [metal, hovered, selected, heroMode],
   );
 
   const handlers = interactive
@@ -385,7 +390,7 @@ function ToothUnit({
         <mesh
           name={`${id}_${style}`}
           geometry={shellGeos[style as Exclude<ToothStyle, 'none'>]}
-          material={silver}
+          material={capMat}
           position={[0, 0.01, 0.045]}
           {...handlers}
         />
@@ -420,6 +425,7 @@ export function PlaceholderArch({
   float = false,
   hideNaturalBase = false,
   anchors,
+  metal = 'silver',
 }: {
   arch: ArchChoice;
   teeth: TeethMap;
@@ -435,6 +441,7 @@ export function PlaceholderArch({
   hideNaturalBase?: boolean;
   /** When set, caps use these transforms (backdrop-aligned); skips legacy arch scale. */
   anchors?: Record<ToothId, ToothAnchor>;
+  metal?: MetalId;
 }) {
   const group = useRef<THREE.Group>(null);
   const ids = toothIdsForArch(arch);
@@ -478,6 +485,7 @@ export function PlaceholderArch({
           heroMode={heroMode}
           hideNatural={hideNaturalBase}
           anchor={anchors?.[id]}
+          metal={metal}
         />
       ))}
     </group>

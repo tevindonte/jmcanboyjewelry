@@ -12,15 +12,17 @@ type Detail = {
     phone: string | null;
     status: string;
     tier: string;
+    metal?: string;
     fulfillment: string;
     total_cents: number;
     deposit_cents: number;
     balance_cents: number;
+    price_override_cents?: number;
     tracking_number: string | null;
     access_token: string;
     media_consent_at: string | null;
   };
-  design: { arch: string; teeth: Record<string, string> } | null;
+  design: { arch: string; teeth: Record<string, string>; metal?: string } | null;
   events: { type: string; note: string | null; created_at: string }[];
   photos: {
     id: string;
@@ -60,6 +62,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
   const [status, setStatus] = useState('');
   const [tracking, setTracking] = useState('');
   const [note, setNote] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
 
   async function load() {
@@ -69,6 +72,8 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
     setData(j);
     setStatus(j.order.status);
     setTracking(j.order.tracking_number ?? '');
+    const override = Number(j.order.price_override_cents ?? 0);
+    setManualPrice(override > 0 ? String(override / 100) : '');
   }
 
   useEffect(() => {
@@ -125,7 +130,8 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
       </Link>
       <h1 className="mt-4 font-display text-2xl font-bold text-silver-bright">{order.name}</h1>
       <p className="text-sm text-text-muted">
-        {order.email} · {order.phone ?? 'no phone'} · tier {order.tier}
+        {order.email} · {order.phone ?? 'no phone'} · tier {order.tier} · metal{' '}
+        {order.metal || data.design?.metal || 'silver'}
       </p>
       <p className="mt-1 text-xs text-steel">
         Media consent:{' '}
@@ -196,6 +202,21 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             className="mt-1 w-full rounded-md border border-border bg-bg px-2 py-2"
           />
         </label>
+        <label className="block text-sm">
+          Manual price (USD)
+          <span className="mt-0.5 block text-xs text-steel">
+            Use for gold quotes (or friend overrides). Sets total, deposit, and balance.
+          </span>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={manualPrice}
+            onChange={(e) => setManualPrice(e.target.value)}
+            placeholder="e.g. 1200"
+            className="mt-1 w-full rounded-md border border-border bg-bg px-2 py-2"
+          />
+        </label>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -203,6 +224,23 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             className="rounded-md bg-silver-bright px-3 py-2 text-sm font-semibold text-bg"
           >
             Save status
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const usd = Number(manualPrice);
+              if (!Number.isFinite(usd) || usd <= 0) {
+                setMsg('Enter a valid manual price in USD');
+                return;
+              }
+              patch({
+                price_override_cents: Math.round(usd * 100),
+                note: note || `Manual price $${usd}`,
+              });
+            }}
+            className="rounded-md border border-border px-3 py-2 text-sm"
+          >
+            Save manual price
           </button>
           <button
             type="button"

@@ -53,12 +53,44 @@ export const pricing = {
       roundToUsd: 1,
     },
   },
+  /**
+   * Customer metal choice. Silver is the only instant-checkout metal at launch.
+   * Vermeil = silver base + plating fee. Solid gold is quote-only (no Stripe).
+   */
+  metals: {
+    silver: {
+      label: 'Silver (sterling)',
+      shortLabel: 'Silver',
+    },
+    vermeil: {
+      label: 'Gold vermeil',
+      shortLabel: 'Gold',
+      /** PLACEHOLDER — gold plating fee on top of silver unit price. */
+      platingFeePerToothUsd: 15,
+    },
+    gold: {
+      label: 'Solid gold (10k/14k)',
+      shortLabel: 'Solid gold',
+      quoteOnly: true as const,
+    },
+  },
 } as const;
 
 export type ToothStyle = 'none' | 'plain' | 'window' | 'deepcut';
 export type ArchChoice = 'top' | 'bottom' | 'both';
 export type OrderTier = 'founding' | 'friend' | 'standard';
+export type MetalId = keyof typeof pricing.metals;
 
 export type PricingConfig = typeof pricing;
 
 export const DWT_IN_GRAMS = 1.55517;
+
+export const METAL_IDS = Object.keys(pricing.metals) as MetalId[];
+
+export function isMetalId(value: unknown): value is MetalId {
+  return value === 'silver' || value === 'vermeil' || value === 'gold';
+}
+
+export function normalizeMetalId(value: unknown): MetalId {
+  return isMetalId(value) ? value : 'silver';
+}

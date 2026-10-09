@@ -14,6 +14,7 @@ type OrderRow = {
   name: string;
   status: string;
   tier: string;
+  metal?: string;
   total_cents: number;
   created_at: string;
 };
@@ -183,7 +184,8 @@ export function AdminDashboard({
                 </Link>
                 <span className="text-text-muted"> · {o.email}</span>
                 <p className="text-xs text-steel">
-                  {o.status} · {o.tier} · {formatCents(o.total_cents)}
+                  {o.status} · {o.tier} · metal {o.metal || 'silver'} ·{' '}
+                  {formatCents(o.total_cents)}
                 </p>
               </div>
               <Link href={`/admin/orders/${o.id}`} className="text-xs text-steel underline">

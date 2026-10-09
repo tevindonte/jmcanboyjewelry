@@ -6,7 +6,7 @@ import { getStripe } from '@/lib/stripe';
 import { generateAccessToken } from '@/lib/referral';
 import { siteConfig } from '@/lib/site.config';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
-import type { ArchChoice } from '@/lib/pricing.config';
+import { normalizeMetalId, type ArchChoice } from '@/lib/pricing.config';
 import { createDoc, getDoc, updateDoc, col } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -49,6 +49,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Design not found' }, { status: 404 });
   }
 
+  const metal = normalizeMetalId(design.metal);
+  if (metal === 'gold') {
+    return NextResponse.json(
+      {
+        error:
+          'Solid gold is quoted per order and cannot check out online. Save your design and join the waitlist.',
+      },
+      { status: 400 },
+    );
+  }
+
   const teeth = JSON.parse(String(design.teeth_json ?? '{}')) as TeethMap;
   const estimate = calculateEstimate({
     arch: design.arch as ArchChoice,
@@ -56,6 +67,7 @@ export async function POST(request: Request) {
     fulfillment: parsed.data.fulfillment,
     tier,
     appliedSpot: settings.applied_spot,
+    metal,
   });
 
   if (!estimate.priced || estimate.depositCents == null || estimate.totalCents == null) {
@@ -77,6 +89,7 @@ export async function POST(request: Request) {
       fulfillment: parsed.data.fulfillment,
       status: 'pending_deposit',
       tier,
+      metal,
       price_override_cents: 0,
       media_consent_at:
         tier === 'founding' && parsed.data.mediaConsent

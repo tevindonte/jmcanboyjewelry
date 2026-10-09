@@ -1,7 +1,7 @@
 'use client';
 
 import { useBuilderStore, type GrillPreset } from '@/store/builder-store';
-import type { ArchChoice, ToothStyle } from '@/lib/pricing.config';
+import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
 import { pricing } from '@/lib/pricing.config';
 import {
   calculateEstimate,
@@ -10,10 +10,16 @@ import {
   isPricedStyle,
   teethToPassMinimum,
   toothIdsForArch,
-  unitPriceUsd,
+  unitPriceForMetalUsd,
   type ToothId,
 } from '@/lib/pricing';
 import type { OrderTier } from '@/lib/pricing.config';
+
+const METAL_CARDS: { id: MetalId; label: string; hint: string }[] = [
+  { id: 'silver', label: 'Silver', hint: 'Sterling · shop now' },
+  { id: 'vermeil', label: 'Gold vermeil', hint: 'Silver + gold plate' },
+  { id: 'gold', label: 'Solid gold', hint: '10k / 14k · quote' },
+];
 
 const ARCHES: { id: ArchChoice; label: string }[] = [
   { id: 'top', label: 'Top' },
@@ -91,10 +97,12 @@ export function BuilderControls({
   appliedSpot: number;
 }) {
   const arch = useBuilderStore((s) => s.arch);
+  const metal = useBuilderStore((s) => s.metal);
   const teeth = useBuilderStore((s) => s.teeth);
   const selected = useBuilderStore((s) => s.selected);
   const pendingStyle = useBuilderStore((s) => s.pendingStyle);
   const setArch = useBuilderStore((s) => s.setArch);
+  const setMetal = useBuilderStore((s) => s.setMetal);
   const chooseStyle = useBuilderStore((s) => s.chooseStyle);
   const removeTooth = useBuilderStore((s) => s.removeTooth);
   const clearStyles = useBuilderStore((s) => s.clearStyles);
@@ -106,12 +114,14 @@ export function BuilderControls({
     fulfillment: 'local_impression',
     tier,
     appliedSpot,
+    metal,
   });
 
   const activeId = selected.length === 1 ? selected[0] : null;
   const activeStyle = activeId ? (teeth[activeId] ?? 'none') : null;
   const pricedCount = estimate.selectedToothCount;
   const empty = pricedCount === 0;
+  const goldQuote = metal === 'gold';
 
   const moreTeeth = teethToPassMinimum(estimate);
   const minLabel = formatUsd(pricing.minimumOrder);
@@ -123,7 +133,7 @@ export function BuilderControls({
     })
     .map((id) => {
       const style = teeth[id] as Exclude<ToothStyle, 'none'>;
-      const unit = unitPriceUsd(style, appliedSpot);
+      const unit = unitPriceForMetalUsd(style, appliedSpot, metal);
       return { id, style, unit };
     });
 
@@ -166,6 +176,35 @@ export function BuilderControls({
         </div>
       </fieldset>
 
+      <fieldset>
+        <legend className="mb-2 text-xs font-medium tracking-wide text-text-muted uppercase">
+          Metal
+        </legend>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Metal">
+          {METAL_CARDS.map((m) => {
+            const active = metal === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setMetal(m.id)}
+                className={[
+                  'flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2.5 text-left transition-colors',
+                  active
+                    ? 'border-silver bg-silver/10 text-silver-bright'
+                    : 'border-border text-silver hover:border-silver/60 hover:bg-bg-elevated',
+                ].join(' ')}
+              >
+                <span className="text-sm font-medium">{m.label}</span>
+                <span className="text-[10px] leading-snug text-steel">{m.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       {/* Per-tooth style panel */}
       <section>
         <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -184,7 +223,7 @@ export function BuilderControls({
         </div>
         <div className="grid grid-cols-3 gap-2">
           {STYLE_CARDS.map((s) => {
-            const unit = unitPriceUsd(s.id, appliedSpot);
+            const unit = unitPriceForMetalUsd(s.id, appliedSpot, metal);
             const active =
               (activeId && activeStyle === s.id) ||
               (!activeId && pendingStyle === s.id);
@@ -204,8 +243,14 @@ export function BuilderControls({
                 <span className="text-sm font-medium">{s.label}</span>
                 <span className="text-[10px] text-steel">{s.hint}</span>
                 <span className="text-xs text-silver-bright">
-                  {formatUsd(unit)}
-                  <span className="text-steel"> / tooth</span>
+                  {goldQuote ? (
+                    'Quote'
+                  ) : (
+                    <>
+                      {formatUsd(unit)}
+                      <span className="text-steel"> / tooth</span>
+                    </>
+                  )}
                 </span>
               </button>
             );
@@ -270,15 +315,30 @@ export function BuilderControls({
 
       {/* Estimate */}
       <div className="rounded-md border border-border bg-bg-elevated px-4 py-3">
-        <div className="mb-3 flex flex-wrap gap-3 text-xs text-steel">
-          <span>Plain {formatUsd(pricing.perTooth.plain)}</span>
-          <span>Window {formatUsd(pricing.perTooth.window)}</span>
-          <span>Deep cut {formatUsd(pricing.perTooth.deepcut)}</span>
-        </div>
+        {!goldQuote && (
+          <div className="mb-3 flex flex-wrap gap-3 text-xs text-steel">
+            <span>
+              Plain {formatUsd(unitPriceForMetalUsd('plain', appliedSpot, metal))}
+            </span>
+            <span>
+              Window {formatUsd(unitPriceForMetalUsd('window', appliedSpot, metal))}
+            </span>
+            <span>
+              Deep cut {formatUsd(unitPriceForMetalUsd('deepcut', appliedSpot, metal))}
+            </span>
+          </div>
+        )}
 
         <p className="mb-2 text-sm text-text-muted">Estimate</p>
 
-        {empty ? (
+        {goldQuote ? (
+          <>
+            <p className="font-display text-xl text-silver-bright">Quoted per order</p>
+            <p className="mt-2 text-sm leading-relaxed text-steel">
+              Gold is quoted per order. Save your design and we&apos;ll send a price.
+            </p>
+          </>
+        ) : empty ? (
           <>
             <p className="font-display text-xl text-silver-bright">{formatCents(0)}</p>
             <p className="mt-1 text-xs text-steel-dim">
@@ -300,6 +360,14 @@ export function BuilderControls({
                   {formatCents(estimate.regularToothSubtotalCents)}
                 </dd>
               </div>
+              {metal === 'vermeil' &&
+                estimate.platingFeeCents != null &&
+                estimate.platingFeeCents > 0 && (
+                  <div className="flex justify-between gap-4 text-xs">
+                    <dt className="text-steel-dim">Includes vermeil plating</dt>
+                    <dd className="text-steel">{formatCents(estimate.platingFeeCents)}</dd>
+                  </div>
+                )}
               {estimate.foundingDiscountCents != null &&
                 estimate.foundingDiscountCents > 0 && (
                   <div className="flex justify-between gap-4">

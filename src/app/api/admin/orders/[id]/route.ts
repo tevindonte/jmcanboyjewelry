@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { orderStatusSchema } from '@/lib/validations';
-import { estimateOrderCost, type TeethMap } from '@/lib/pricing';
+import { calculateEstimate, estimateOrderCost, type TeethMap } from '@/lib/pricing';
+import { normalizeMetalId, type ArchChoice } from '@/lib/pricing.config';
 import { getSettings } from '@/lib/settings';
 import { sendMoldReviewResult } from '@/lib/email';
 import { createAdminClient } from '@/lib/appwrite/admin';
@@ -83,6 +84,7 @@ export async function GET(
           arch: designDoc.arch,
           teeth,
           email: designDoc.email,
+          metal: normalizeMetalId(designDoc.metal ?? order.metal),
         }
       : null,
     events: events.map((e) => ({
@@ -103,6 +105,8 @@ const patchSchema = z.object({
   markBalancePaidInPerson: z.boolean().optional(),
   deleteCustomerData: z.boolean().optional(),
   waiveMediaConsent: z.boolean().optional(),
+  /** Manual quote for gold (or friend) — sets total / deposit / balance. */
+  price_override_cents: z.number().int().positive().optional().nullable(),
 });
 
 export async function PATCH(
@@ -182,6 +186,33 @@ export async function PATCH(
   if (parsed.data.tracking_number !== undefined) {
     updates.tracking_number = parsed.data.tracking_number ?? '';
   }
+
+  if (parsed.data.price_override_cents != null) {
+    const settings = await getSettings();
+    const metal = normalizeMetalId(order.metal);
+    const designDoc = await getDoc(col.designs, String(order.design_id));
+    const teeth = designDoc
+      ? (JSON.parse(String(designDoc.teeth_json ?? '{}')) as TeethMap)
+      : {};
+    const estimate = calculateEstimate({
+      arch: (designDoc?.arch as ArchChoice) ?? 'top',
+      teeth,
+      fulfillment: order.fulfillment as 'kit_mail' | 'local_impression',
+      tier: order.tier as 'founding' | 'friend' | 'standard',
+      appliedSpot: settings.applied_spot,
+      metal,
+      priceOverrideCents: parsed.data.price_override_cents,
+    });
+    if (!estimate.priced || estimate.totalCents == null) {
+      return NextResponse.json({ error: 'Could not apply manual price' }, { status: 400 });
+    }
+    updates.price_override_cents = parsed.data.price_override_cents;
+    updates.total_cents = estimate.totalCents;
+    updates.deposit_cents = estimate.depositCents ?? 0;
+    updates.balance_cents = estimate.balanceCents ?? 0;
+    updates.price_snapshot_json = JSON.stringify(estimate.priceSnapshot);
+  }
+
   if (Object.keys(updates).length) await updateDoc(col.orders, id, updates);
 
   if (parsed.data.status) {
@@ -189,6 +220,14 @@ export async function PATCH(
       order_id: id,
       type: parsed.data.status,
       note: parsed.data.note ?? '',
+    });
+  } else if (parsed.data.price_override_cents != null) {
+    await createDoc(col.orderEvents, {
+      order_id: id,
+      type: 'price_override',
+      note:
+        parsed.data.note ??
+        `Manual price set to $${(parsed.data.price_override_cents / 100).toFixed(0)}`,
     });
   }
 

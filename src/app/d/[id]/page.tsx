@@ -4,7 +4,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { getSettings, getFoundingSlotsRemaining, resolvePublicTier } from '@/lib/settings';
 import { calculateEstimate, formatCents, type TeethMap } from '@/lib/pricing';
-import type { ArchChoice } from '@/lib/pricing.config';
+import { normalizeMetalId, pricing, type ArchChoice } from '@/lib/pricing.config';
 import { DesignReadonly } from '@/components/DesignReadonly';
 import { getDoc, col } from '@/lib/db';
 
@@ -20,6 +20,7 @@ export default async function DesignSharePage({
   if (!design) notFound();
 
   const teeth = JSON.parse(String(design.teeth_json ?? '{}')) as TeethMap;
+  const metal = normalizeMetalId(design.metal);
   const settings = await getSettings();
   const founding = await getFoundingSlotsRemaining();
   const tier = await resolvePublicTier();
@@ -29,12 +30,16 @@ export default async function DesignSharePage({
     fulfillment: 'local_impression',
     tier,
     appliedSpot: settings.applied_spot,
+    metal,
   });
 
+  const goldQuote = metal === 'gold';
   const cta =
-    settings.site_mode === 'preorder'
-      ? { href: `/checkout?design=${design.$id}`, label: 'Reserve this design' }
-      : { href: `/waitlist?design=${design.$id}`, label: 'Join waitlist' };
+    goldQuote || settings.site_mode !== 'preorder'
+      ? { href: `/waitlist?design=${design.$id}`, label: 'Join waitlist' }
+      : { href: `/checkout?design=${design.$id}`, label: 'Reserve this design' };
+
+  const metalLabel = pricing.metals[metal].label;
 
   return (
     <>
@@ -42,10 +47,12 @@ export default async function DesignSharePage({
       <main className="mx-auto max-w-3xl px-4 py-12">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Saved design</h1>
         <p className="mt-2 text-text-muted">
-          Read-only preview. Estimate:{' '}
-          {estimate.priced &&
-          tier === 'founding' &&
-          estimate.regularToothSubtotalCents != null ? (
+          Read-only preview · {metalLabel}. Estimate:{' '}
+          {estimate.quoteOnly ? (
+            <span className="text-silver-bright">Quoted per order</span>
+          ) : estimate.priced &&
+            tier === 'founding' &&
+            estimate.regularToothSubtotalCents != null ? (
             <>
               <span className="mr-2 text-steel line-through">
                 {formatCents(estimate.regularToothSubtotalCents)}
@@ -57,12 +64,17 @@ export default async function DesignSharePage({
           ) : (
             'Price on request'
           )}
-          {founding.remaining > 0 && (
+          {founding.remaining > 0 && !goldQuote && (
             <span className="ml-2 text-xs text-steel">
               ({founding.remaining} of {founding.total} founding left)
             </span>
           )}
         </p>
+        {goldQuote && (
+          <p className="mt-2 text-sm text-steel">
+            Gold is quoted per order. Save your design and we&apos;ll send a price.
+          </p>
+        )}
         <DesignReadonly arch={design.arch as ArchChoice} teeth={teeth} />
         <p className="mt-4 text-xs text-steel">
           This is a style preview, not your actual teeth. Fit comes from your mold.

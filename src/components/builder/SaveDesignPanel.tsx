@@ -12,12 +12,15 @@ export function SaveDesignPanel({
   tier: 'founding' | 'friend' | 'standard';
 }) {
   const arch = useBuilderStore((s) => s.arch);
+  const metal = useBuilderStore((s) => s.metal);
   const teeth = useBuilderStore((s) => s.teeth);
   const [email, setEmail] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ id: string; url: string } | null>(null);
+  const [saved, setSaved] = useState<{ id: string; url: string; metal: string } | null>(
+    null,
+  );
 
   async function save() {
     setLoading(true);
@@ -26,11 +29,11 @@ export function SaveDesignPanel({
       const res = await fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, arch, teeth, honeypot }),
+        body: JSON.stringify({ email, arch, teeth, metal, honeypot }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Could not save');
-      setSaved({ id: data.id, url: data.url });
+      setSaved({ id: data.id, url: data.url, metal });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save');
     } finally {
@@ -38,19 +41,19 @@ export function SaveDesignPanel({
     }
   }
 
+  const goldQuote = (saved?.metal ?? metal) === 'gold';
   const cta =
-    siteMode === 'preorder'
-      ? 'Reserve your slot'
-      : siteMode === 'closed'
+    goldQuote || siteMode !== 'preorder'
+      ? siteMode === 'closed'
         ? 'Slots are full — join waitlist'
-        : 'Join the waitlist';
+        : 'Join the waitlist'
+      : 'Reserve your slot';
 
-  const ctaHref =
-    siteMode === 'preorder' && saved
-      ? `/checkout?design=${saved.id}`
-      : saved
-        ? `/waitlist?design=${saved.id}`
-        : null;
+  const ctaHref = saved
+    ? goldQuote || siteMode !== 'preorder'
+      ? `/waitlist?design=${saved.id}`
+      : `/checkout?design=${saved.id}`
+    : null;
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-bg-elevated p-4">

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { saveDesignSchema } from '@/lib/validations';
 import { calculateEstimate } from '@/lib/pricing';
+import { normalizeMetalId } from '@/lib/pricing.config';
 import { getSettings, resolvePublicTier } from '@/lib/settings';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { createDoc, col } from '@/lib/db';
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: 'ok', url: '/' });
   }
 
+  const metal = normalizeMetalId(parsed.data.metal);
   const settings = await getSettings();
   const tier = await resolvePublicTier();
   const estimate = calculateEstimate({
@@ -29,6 +31,7 @@ export async function POST(request: Request) {
     fulfillment: 'local_impression',
     tier,
     appliedSpot: settings.applied_spot,
+    metal,
   });
 
   try {
@@ -36,6 +39,7 @@ export async function POST(request: Request) {
       email: parsed.data.email.toLowerCase(),
       arch: parsed.data.arch,
       teeth_json: JSON.stringify(parsed.data.teeth),
+      metal,
       estimate_cents: estimate.totalCents ?? 0,
     });
 
@@ -45,6 +49,8 @@ export async function POST(request: Request) {
       url: `${base}/d/${doc.$id}`,
       estimate_cents: estimate.totalCents,
       priced: estimate.priced,
+      quoteOnly: estimate.quoteOnly,
+      metal,
       tier,
     });
   } catch (e) {

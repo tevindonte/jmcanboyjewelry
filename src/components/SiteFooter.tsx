@@ -16,7 +16,7 @@ export function SiteFooter() {
             {siteConfig.brandName}
           </p>
           <p className="mt-2 max-w-xs text-sm text-text-muted">
-            Custom sterling silver grillz. {siteConfig.location}.
+            Custom grillz. Silver now. Gold on request. {siteConfig.location}.
           </p>
           <p className="mt-1 text-xs text-steel-dim">{siteConfig.domain}</p>
         </div>

@@ -1,7 +1,9 @@
 import {
   pricing,
   DWT_IN_GRAMS,
+  normalizeMetalId,
   type ArchChoice,
+  type MetalId,
   type OrderTier,
   type ToothStyle,
 } from './pricing.config';
@@ -18,6 +20,8 @@ export type PriceSnapshot = {
   spotReference: number;
   unitPricesUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
   metalAdjustUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
+  metalId: MetalId;
+  platingFeePerToothUsd: number;
   tier: OrderTier;
   foundingDiscountPercent: number | null;
   kitFeeUsd: number | null;
@@ -32,14 +36,21 @@ export type EstimateInput = {
   tier: OrderTier;
   /** Spot currently applied to live prices (from settings). */
   appliedSpot: number;
-  /** Friend orders: manual total in cents overrides estimate. */
+  /** Customer metal choice. Defaults to silver. */
+  metal?: MetalId;
+  /** Friend / gold quote: manual total in cents overrides estimate. */
   priceOverrideCents?: number | null;
 };
 
 export type EstimateResult = {
   priced: boolean;
+  /** True when metal is quote-only (solid gold) and no manual override. */
+  quoteOnly: boolean;
   currency: string;
   tier: OrderTier;
+  metalId: MetalId;
+  platingFeePerToothUsd: number;
+  platingFeeCents: number | null;
   unitPricesUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
   metalAdjustUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
   toothSubtotalCents: number | null;
@@ -184,12 +195,37 @@ export function pendingAdjustments(candidateSpot: number): Record<
   return out;
 }
 
+function platingFeePerToothUsd(metalId: MetalId): number {
+  if (metalId !== 'vermeil') return 0;
+  return pricing.metals.vermeil.platingFeePerToothUsd;
+}
+
+/** Live unit price including vermeil plating when applicable. */
+export function unitPriceForMetalUsd(
+  style: 'plain' | 'window' | 'deepcut',
+  appliedSpot: number,
+  metalId: MetalId = 'silver',
+): number | null {
+  if (metalId === 'gold') return null;
+  const base = unitPriceUsd(style, appliedSpot);
+  if (base === null) return null;
+  return roundTo(base + platingFeePerToothUsd(metalId), pricing.metal.passThrough.roundToUsd);
+}
+
 function unpricedResult(
-  partial: Partial<EstimateResult> & { tier: OrderTier; selectedToothCount: number },
+  partial: Partial<EstimateResult> & {
+    tier: OrderTier;
+    selectedToothCount: number;
+    metalId?: MetalId;
+  },
 ): EstimateResult {
+  const metalId = partial.metalId ?? 'silver';
+  const quoteOnly = metalId === 'gold';
   return {
     priced: false,
     currency: pricing.currency,
+    platingFeePerToothUsd: platingFeePerToothUsd(metalId),
+    platingFeeCents: null,
     unitPricesUsd: {},
     metalAdjustUsd: {},
     toothSubtotalCents: null,
@@ -202,9 +238,11 @@ function unpricedResult(
     totalCents: null,
     depositCents: null,
     balanceCents: null,
-    displayLabel: 'Price on request',
+    displayLabel: quoteOnly ? 'Quoted per order' : 'Price on request',
     priceSnapshot: null,
     ...partial,
+    metalId,
+    quoteOnly: partial.quoteOnly ?? quoteOnly,
   };
 }
 
@@ -252,9 +290,11 @@ export function teethToPassMinimum(
  */
 export function calculateEstimate(input: EstimateInput): EstimateResult {
   const { tier, appliedSpot } = input;
+  const metalId = normalizeMetalId(input.metal);
+  const plateUsd = platingFeePerToothUsd(metalId);
 
-  // Friend with manual override
-  if (tier === 'friend' && input.priceOverrideCents != null) {
+  // Friend / gold manual override
+  if (input.priceOverrideCents != null && (tier === 'friend' || metalId === 'gold')) {
     const totalCents = input.priceOverrideCents;
     const depositCents = Math.round((totalCents * pricing.depositPercent) / 100);
     const snapshot: PriceSnapshot = {
@@ -262,7 +302,9 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
       spotReference: pricing.metal.spotReference,
       unitPricesUsd: {},
       metalAdjustUsd: {},
-      tier: 'friend',
+      metalId,
+      platingFeePerToothUsd: plateUsd,
+      tier,
       foundingDiscountPercent: null,
       kitFeeUsd: null,
       minimumOrderUsd: pricing.minimumOrder,
@@ -270,8 +312,12 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     };
     return {
       priced: true,
+      quoteOnly: false,
       currency: pricing.currency,
-      tier: 'friend',
+      tier,
+      metalId,
+      platingFeePerToothUsd: plateUsd,
+      platingFeeCents: 0,
       unitPricesUsd: {},
       metalAdjustUsd: {},
       toothSubtotalCents: totalCents,
@@ -290,12 +336,30 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     };
   }
 
+  // Solid gold with no override — never Stripe-priced at launch
+  if (metalId === 'gold') {
+    const allowed = new Set(toothIdsForArch(input.arch));
+    let selectedToothCount = 0;
+    for (const [id, style] of Object.entries(input.teeth) as [ToothId, ToothStyle][]) {
+      if (!allowed.has(id)) continue;
+      if (!style || style === 'none') continue;
+      selectedToothCount += 1;
+    }
+    return unpricedResult({
+      tier,
+      metalId,
+      quoteOnly: true,
+      selectedToothCount,
+      displayLabel: 'Quoted per order',
+    });
+  }
+
   const allowed = new Set(toothIdsForArch(input.arch));
   const unitPricesUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>> = {};
   const metalAdj: Partial<Record<'plain' | 'window' | 'deepcut', number>> = {};
 
   for (const style of STYLE_KEYS) {
-    const unit = unitPriceUsd(style, appliedSpot);
+    const unit = unitPriceForMetalUsd(style, appliedSpot, metalId);
     if (unit !== null) unitPricesUsd[style] = unit;
     metalAdj[style] = metalAdjustUsd(style, appliedSpot);
   }
@@ -317,12 +381,18 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     }
   }
 
+  const platingFeeCents = usdToCents(plateUsd * selectedToothCount);
+
   // Empty design: show $0 (not "Price on request")
   if (!missingUnit && selectedToothCount === 0) {
     return {
       priced: true,
+      quoteOnly: false,
       currency: pricing.currency,
       tier,
+      metalId,
+      platingFeePerToothUsd: plateUsd,
+      platingFeeCents: 0,
       unitPricesUsd,
       metalAdjustUsd: metalAdj,
       toothSubtotalCents: 0,
@@ -344,9 +414,11 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
   if (missingUnit) {
     return unpricedResult({
       tier,
+      metalId,
       selectedToothCount,
       unitPricesUsd,
       metalAdjustUsd: metalAdj,
+      platingFeeCents,
       kitFeeCents:
         input.fulfillment === 'kit_mail'
           ? pricing.kitFee != null
@@ -363,9 +435,11 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     if (pricing.founding.discountPercent === null) {
       return unpricedResult({
         tier,
+        metalId,
         selectedToothCount,
         unitPricesUsd,
         metalAdjustUsd: metalAdj,
+        platingFeeCents,
         toothSubtotalCents: regularToothSubtotalCents,
         regularToothSubtotalCents,
       });
@@ -392,9 +466,11 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     if (pricing.kitFee === null) {
       return unpricedResult({
         tier,
+        metalId,
         selectedToothCount,
         unitPricesUsd,
         metalAdjustUsd: metalAdj,
+        platingFeeCents,
         toothSubtotalCents: regularToothSubtotalCents,
         regularToothSubtotalCents,
         foundingDiscountCents,
@@ -426,6 +502,8 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     spotReference: pricing.metal.spotReference,
     unitPricesUsd,
     metalAdjustUsd: metalAdj,
+    metalId,
+    platingFeePerToothUsd: plateUsd,
     tier,
     foundingDiscountPercent:
       tier === 'founding' ? pricing.founding.discountPercent : null,
@@ -436,8 +514,12 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
 
   return {
     priced: true,
+    quoteOnly: false,
     currency: pricing.currency,
     tier,
+    metalId,
+    platingFeePerToothUsd: plateUsd,
+    platingFeeCents,
     unitPricesUsd,
     metalAdjustUsd: metalAdj,
     toothSubtotalCents: regularToothSubtotalCents,

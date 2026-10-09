@@ -73,8 +73,11 @@ export default async function HomePage() {
                 {siteConfig.brandName}
               </p>
               <h1 className="mt-3 max-w-xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-silver-bright sm:text-6xl">
-                Custom sterling grillz
+                Custom grillz
               </h1>
+              <p className="mt-2 text-sm font-medium tracking-wide text-silver">
+                Silver now. Gold on request.
+              </p>
               <p className="mt-4 max-w-md text-base text-text-muted sm:text-lg">
                 Pick your teeth. Pay a deposit. Send your mold. Get silver that fits.
               </p>

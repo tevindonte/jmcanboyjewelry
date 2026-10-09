@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { adminCreateOrderSchema } from '@/lib/validations';
 import { calculateEstimate } from '@/lib/pricing';
+import { normalizeMetalId } from '@/lib/pricing.config';
 import { getSettings, getFoundingSlotsRemaining } from '@/lib/settings';
 import { generateAccessToken } from '@/lib/referral';
 import { siteConfig } from '@/lib/site.config';
@@ -19,12 +20,19 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const metal = normalizeMetalId(data.metal);
   if ((data.markDepositPaid || data.markBalancePaid) && !data.note.trim()) {
     return NextResponse.json({ error: 'Note required when marking paid' }, { status: 400 });
   }
   if (data.tier === 'friend' && data.priceOverrideCents == null) {
     return NextResponse.json(
       { error: 'Friend orders need a manual price (price_override_cents)' },
+      { status: 400 },
+    );
+  }
+  if (metal === 'gold' && data.priceOverrideCents == null) {
+    return NextResponse.json(
+      { error: 'Solid gold orders need a manual quote (price_override_cents)' },
       { status: 400 },
     );
   }
@@ -42,6 +50,7 @@ export async function POST(request: Request) {
     fulfillment: data.fulfillment,
     tier,
     appliedSpot: settings.applied_spot,
+    metal,
     priceOverrideCents: data.priceOverrideCents,
   });
 
@@ -54,6 +63,7 @@ export async function POST(request: Request) {
       email: data.email.toLowerCase(),
       arch: data.arch,
       teeth_json: JSON.stringify(data.teeth),
+      metal,
       estimate_cents: estimate.totalCents,
     });
 
@@ -73,6 +83,7 @@ export async function POST(request: Request) {
       fulfillment: data.fulfillment,
       status,
       tier,
+      metal,
       price_override_cents: data.priceOverrideCents ?? 0,
       media_consent_at: '',
       total_cents: estimate.totalCents,

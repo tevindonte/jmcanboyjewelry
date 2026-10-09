@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { ArchChoice, ToothStyle } from '@/lib/pricing.config';
+import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
 import type { TeethMap, ToothId } from '@/lib/pricing';
 import { toothIdsForArch } from '@/lib/pricing';
 
@@ -33,12 +33,14 @@ const PRESET_STYLES: Record<GrillPreset, { arch: ArchChoice; ids: ToothId[]; sty
 
 type BuilderState = {
   arch: ArchChoice;
+  metal: MetalId;
   teeth: TeethMap;
   selected: ToothId[];
   hovered: ToothId | null;
   /** Style waiting to apply on the next tooth tap when nothing is selected. */
   pendingStyle: ToothStyle | null;
   setArch: (arch: ArchChoice) => void;
+  setMetal: (metal: MetalId) => void;
   selectTooth: (id: ToothId, multi?: boolean) => void;
   /** Select a tooth; apply pendingStyle if set. */
   tapTooth: (id: ToothId) => void;
@@ -56,7 +58,7 @@ type BuilderState = {
   applyPreset: (preset: GrillPreset) => void;
   selectTop6: () => void;
   selectBottom6: () => void;
-  loadDesign: (arch: ArchChoice, teeth: TeethMap) => void;
+  loadDesign: (arch: ArchChoice, teeth: TeethMap, metal?: MetalId) => void;
 };
 
 function emptyTeeth(): TeethMap {
@@ -71,12 +73,15 @@ const CYCLE: ToothStyle[] = ['none', 'plain', 'window', 'deepcut'];
 
 export const useBuilderStore = create<BuilderState>((set, get) => ({
   arch: 'top',
+  metal: 'silver',
   teeth: emptyTeeth(),
   selected: [],
   hovered: null,
   pendingStyle: null,
 
   setArch: (arch) => set({ arch, selected: [], hovered: null }),
+
+  setMetal: (metal) => set({ metal }),
 
   selectTooth: (id, multi = false) => {
     const allowed = toothIdsForArch(get().arch);
@@ -211,9 +216,10 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     get().applyPreset('bottom6');
   },
 
-  loadDesign: (arch, teeth) =>
+  loadDesign: (arch, teeth, metal = 'silver') =>
     set({
       arch,
+      metal,
       teeth: { ...emptyTeeth(), ...teeth },
       selected: [],
       pendingStyle: null,

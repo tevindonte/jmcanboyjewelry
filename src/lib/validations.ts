@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const toothStyleSchema = z.enum(['none', 'plain', 'window', 'deepcut']);
 export const archSchema = z.enum(['top', 'bottom', 'both']);
+export const metalSchema = z.enum(['silver', 'vermeil', 'gold']);
 export const toothIdSchema = z.string().regex(/^[UL][1-8]$/);
 
 export const teethMapSchema = z.record(toothIdSchema, toothStyleSchema);
@@ -10,6 +11,7 @@ export const saveDesignSchema = z.object({
   email: z.string().email().max(254),
   arch: archSchema,
   teeth: teethMapSchema,
+  metal: metalSchema.default('silver'),
   honeypot: z.string().max(0).optional().or(z.literal('')),
 });
 
@@ -61,6 +63,7 @@ export const adminCreateOrderSchema = z.object({
   phone: z.string().max(40).optional().nullable(),
   arch: archSchema,
   teeth: teethMapSchema,
+  metal: metalSchema.default('silver'),
   fulfillment: z.enum(['kit_mail', 'local_impression']),
   tier: orderTierSchema,
   priceOverrideCents: z.number().int().positive().optional().nullable(),

@@ -14,7 +14,7 @@ const GrillCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[280px] items-center justify-center text-sm text-text-muted">
+      <div className="flex h-full min-h-[240px] items-center justify-center text-sm text-text-muted">
         Loading 3D…
       </div>
     ),
@@ -32,8 +32,8 @@ export function BuilderShell({
   foundingTotal: number;
   appliedSpot: number;
 }) {
-  const [use2d, setUse2d] = useState(false);
-  const onFallback = useCallback(() => setUse2d(true), []);
+  const [webglFailed, setWebglFailed] = useState(false);
+  const onFallback = useCallback(() => setWebglFailed(true), []);
   const tier: OrderTier = foundingRemaining > 0 ? 'founding' : 'standard';
   const foundingLabel =
     foundingRemaining > 0
@@ -41,35 +41,46 @@ export function BuilderShell({
       : '';
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-2">
-      <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h1 className="font-display text-2xl font-bold text-silver-bright">Build yours</h1>
-          <button
-            type="button"
-            onClick={() => setUse2d((v) => !v)}
-            className="text-xs text-steel hover:text-silver"
-          >
-            {use2d ? 'Try 3D' : 'Use 2D chart'}
-          </button>
-        </div>
-        <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-bg-elevated sm:aspect-[4/3]">
-          {use2d ? (
-            <div className="flex h-full items-center justify-center p-4">
-              <ToothChart2D />
-            </div>
-          ) : (
-            <GrillCanvas onFallback={onFallback} className="h-full w-full" />
-          )}
-        </div>
-        {!use2d && (
-          <div className="mt-4 lg:hidden">
+    <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
+      {/* Visual column: 2D chart + 3D */}
+      <div className="min-w-0 space-y-4">
+        <h1 className="font-display text-2xl font-bold text-silver-bright">Build yours</h1>
+
+        {/* Mobile: 2D first. Desktop: chart beside / above 3D in a split. */}
+        <div className="flex flex-col gap-4 lg:gap-3">
+          <div className="rounded-lg border border-border/50 bg-bg-elevated/40 px-2 py-4 sm:px-4 sm:py-5">
+            <p className="mb-3 px-1 text-xs tracking-wide text-steel uppercase">
+              Tooth chart
+            </p>
             <ToothChart2D />
           </div>
-        )}
+
+          {!webglFailed ? (
+            <div className="relative min-h-[280px] overflow-hidden rounded-lg border border-border/40 bg-transparent sm:min-h-[320px] lg:aspect-[5/4] lg:min-h-0">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -z-10"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 55% 50% at 50% 48%, rgba(180,190,205,0.14) 0%, transparent 68%)',
+                }}
+              />
+              <GrillCanvas
+                onFallback={onFallback}
+                mode="builder"
+                className="h-full min-h-[280px] w-full sm:min-h-[320px]"
+                showViewControls
+              />
+            </div>
+          ) : (
+            <p className="rounded-md border border-border px-4 py-6 text-center text-sm text-steel">
+              3D preview unavailable — use the tooth chart above.
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <BuilderControls
           tier={tier}
           foundingLabel={foundingLabel}

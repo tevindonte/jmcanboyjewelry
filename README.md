@@ -16,9 +16,10 @@ Domain: **jmcanboyjewelry.com**
 ## Local setup
 
 1. Copy `.env.example` → `.env.local` and fill values.
-2. Follow **[appwrite/SETUP.md](appwrite/SETUP.md)** (database, collections, bucket, admin user).
-3. `npm install && npm run dev`
-4. While private: open `http://localhost:3000/?preview=YOUR_PREVIEW_TOKEN`
+2. Follow **[appwrite/SETUP.md](appwrite/SETUP.md)** (database + 8 tables, bucket, admin user).
+3. With `.env.local` filled: `npm run setup:appwrite` (idempotent columns/indexes/settings seed).
+4. `npm install && npm run dev`
+5. While private: open `http://localhost:3000/?preview=YOUR_PREVIEW_TOKEN`
 
 ## Deploy on Render (free)
 

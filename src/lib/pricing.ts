@@ -43,9 +43,14 @@ export type EstimateResult = {
   unitPricesUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
   metalAdjustUsd: Partial<Record<'plain' | 'window' | 'deepcut', number>>;
   toothSubtotalCents: number | null;
-  /** Regular (pre-discount) tooth subtotal — for strikethrough on founding. */
+  /** Regular (pre-discount) tooth subtotal. */
   regularToothSubtotalCents: number | null;
   foundingDiscountCents: number | null;
+  /**
+   * Grill total after founding discount, before minimum clamp.
+   * Useful for explaining why the minimum order line appears.
+   */
+  preMinimumCents: number | null;
   afterDiscountCents: number | null;
   minimumApplied: boolean;
   kitFeeCents: number | null;
@@ -190,6 +195,7 @@ function unpricedResult(
     toothSubtotalCents: null,
     regularToothSubtotalCents: null,
     foundingDiscountCents: null,
+    preMinimumCents: null,
     afterDiscountCents: null,
     minimumApplied: false,
     kitFeeCents: null,
@@ -200,6 +206,44 @@ function unpricedResult(
     priceSnapshot: null,
     ...partial,
   };
+}
+
+/**
+ * How many more plain (cheapest) teeth are needed so the post-discount
+ * subtotal clears the minimum order. Returns 0 when already clear / empty.
+ */
+export function teethToPassMinimum(
+  estimate: Pick<
+    EstimateResult,
+    | 'minimumApplied'
+    | 'preMinimumCents'
+    | 'unitPricesUsd'
+    | 'tier'
+    | 'selectedToothCount'
+  >,
+): number {
+  if (!estimate.minimumApplied || estimate.selectedToothCount === 0) return 0;
+  if (pricing.minimumOrder === null) return 0;
+  const pre = estimate.preMinimumCents ?? 0;
+  const minCents = usdToCents(pricing.minimumOrder);
+  const gap = minCents - pre;
+  if (gap <= 0) return 0;
+
+  const plainUsd = estimate.unitPricesUsd.plain;
+  if (plainUsd == null || plainUsd <= 0) return 0;
+
+  let perToothCents = usdToCents(plainUsd);
+  if (
+    estimate.tier === 'founding' &&
+    pricing.founding.enabled &&
+    pricing.founding.discountPercent != null
+  ) {
+    perToothCents = Math.round(
+      (perToothCents * (100 - pricing.founding.discountPercent)) / 100,
+    );
+  }
+  if (perToothCents <= 0) return 0;
+  return Math.ceil(gap / perToothCents);
 }
 
 /**
@@ -233,6 +277,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
       toothSubtotalCents: totalCents,
       regularToothSubtotalCents: totalCents,
       foundingDiscountCents: 0,
+      preMinimumCents: totalCents,
       afterDiscountCents: totalCents,
       minimumApplied: false,
       kitFeeCents: 0,
@@ -272,7 +317,31 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     }
   }
 
-  if (missingUnit || selectedToothCount === 0) {
+  // Empty design: show $0 (not "Price on request")
+  if (!missingUnit && selectedToothCount === 0) {
+    return {
+      priced: true,
+      currency: pricing.currency,
+      tier,
+      unitPricesUsd,
+      metalAdjustUsd: metalAdj,
+      toothSubtotalCents: 0,
+      regularToothSubtotalCents: 0,
+      foundingDiscountCents: 0,
+      preMinimumCents: 0,
+      afterDiscountCents: 0,
+      minimumApplied: false,
+      kitFeeCents: 0,
+      totalCents: 0,
+      depositCents: 0,
+      balanceCents: 0,
+      selectedToothCount: 0,
+      displayLabel: formatCents(0),
+      priceSnapshot: null,
+    };
+  }
+
+  if (missingUnit) {
     return unpricedResult({
       tier,
       selectedToothCount,
@@ -306,7 +375,8 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     );
   }
 
-  let afterDiscountCents = regularToothSubtotalCents - foundingDiscountCents;
+  const preMinimumCents = regularToothSubtotalCents - foundingDiscountCents;
+  let afterDiscountCents = preMinimumCents;
   let minimumApplied = false;
 
   if (pricing.minimumOrder !== null) {
@@ -373,6 +443,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     toothSubtotalCents: regularToothSubtotalCents,
     regularToothSubtotalCents,
     foundingDiscountCents,
+    preMinimumCents,
     afterDiscountCents,
     minimumApplied,
     kitFeeCents,

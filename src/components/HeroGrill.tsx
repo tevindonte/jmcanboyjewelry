@@ -21,7 +21,7 @@ export function HeroGrill() {
 
   if (failed) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center bg-gradient-to-b from-bg-soft to-bg">
+      <div className="flex h-full min-h-[280px] items-center justify-center bg-gradient-to-b from-bg-soft to-bg">
         <div className="text-center">
           <p className="font-display text-5xl tracking-tight text-silver/40">Ag</p>
           <p className="mt-2 text-sm text-text-muted">Sterling silver grillz</p>
@@ -30,5 +30,12 @@ export function HeroGrill() {
     );
   }
 
-  return <GrillCanvas onFallback={onFallback} className="h-full min-h-[320px] w-full" />;
+  return (
+    <GrillCanvas
+      onFallback={onFallback}
+      mode="hero"
+      interactive
+      className="h-full min-h-[280px] w-full lg:min-h-0"
+    />
+  );
 }

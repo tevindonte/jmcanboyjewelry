@@ -3,6 +3,7 @@ import { InputFile } from 'node-appwrite/file';
 import { siteConfig } from '@/lib/site.config';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { createAdminClient, ID } from '@/lib/appwrite/admin';
+import { isAllowedUploadMime, normalizeImageMime, toStoredJpeg } from '@/lib/images';
 import {
   findOne,
   listDocs,
@@ -59,16 +60,22 @@ export async function POST(
     return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 400 });
   }
 
-  const mime = file.type;
-  if (!(siteConfig.moldPhotoMimeTypes as readonly string[]).includes(mime)) {
-    return NextResponse.json({ error: 'Images only' }, { status: 400 });
+  const mime = normalizeImageMime(file.type, file.name);
+  if (!isAllowedUploadMime(mime)) {
+    return NextResponse.json(
+      { error: 'Images only (JPEG, PNG, WebP, or HEIC)' },
+      { status: 400 },
+    );
   }
 
   try {
+    const raw = Buffer.from(await file.arrayBuffer());
+    // Always store as JPEG so Appwrite bucket (jpg/jpeg/png) + admin browsers work
+    const jpeg = await toStoredJpeg(raw, mime);
+
     const { storage } = createAdminClient();
-    const buffer = Buffer.from(await file.arrayBuffer());
     const fileId = ID.unique();
-    const input = InputFile.fromBuffer(buffer, file.name || `${fileId}.jpg`);
+    const input = InputFile.fromBuffer(jpeg.buffer, `${fileId}.jpg`);
 
     await storage.createFile(APPWRITE.bucketMoldPhotos, fileId, input);
 
@@ -94,6 +101,9 @@ export async function POST(
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Upload failed. Try a JPEG or PNG if this keeps happening.' },
+      { status: 500 },
+    );
   }
 }

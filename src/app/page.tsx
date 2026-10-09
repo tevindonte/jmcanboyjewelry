@@ -57,47 +57,56 @@ export default async function HomePage() {
     <>
       <SiteHeader />
       <main>
-        {/* Hero — one composition */}
-        <section className="relative min-h-[100dvh] overflow-hidden">
-          <div className="absolute inset-0">
-            <HeroGrill />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-bg/20" />
-          </div>
-          <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-end px-4 pb-16 pt-24">
-            <p className="font-display text-xs font-semibold tracking-[0.22em] text-silver uppercase">
-              {siteConfig.brandName}
-            </p>
-            <h1 className="mt-3 max-w-xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-silver-bright sm:text-6xl">
-              Custom sterling grillz
-            </h1>
-            <p className="mt-4 max-w-md text-base text-text-muted sm:text-lg">
-              Pick your teeth. Pay a deposit. Send your mold. Get silver that fits.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link
-                href={cta.href}
-                className="rounded-md bg-silver-bright px-6 py-3 text-sm font-semibold text-bg hover:bg-silver"
-              >
-                {cta.label}
-              </Link>
-              <Link
-                href="/build"
-                className="rounded-md border border-border px-6 py-3 text-sm text-silver hover:border-silver"
-              >
-                Open builder
-              </Link>
-            </div>
-            {pricing.founding.enabled && founding.remaining > 0 && (
-              <p className="mt-6 text-sm text-steel">
-                Founding slots:{' '}
-                <span className="text-silver-bright">
-                  {founding.remaining} of {founding.total} left
-                </span>
-                <span className="block text-xs text-steel-dim">
-                  Soft pricing for early clients — locked for these {founding.total} only.
-                </span>
+        {/* Hero — brand + copy left (desktop), model right / below */}
+        <section className="relative overflow-x-clip bg-gradient-to-br from-bg via-bg-soft to-bg lg:min-h-[100dvh]">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-40"
+            style={{
+              // Soft wash behind the right-column arch center
+              background:
+                'radial-gradient(ellipse 55% 45% at 75% 50%, rgba(192,198,210,0.14), transparent 62%)',
+            }}
+          />
+          <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-4 px-4 pb-10 pt-24 sm:gap-6 lg:min-h-[100dvh] lg:grid-cols-2 lg:gap-12 lg:pb-16 lg:pt-24">
+            <div className="order-1 z-10 flex flex-col justify-center lg:order-1">
+              <p className="font-display text-xs font-semibold tracking-[0.22em] text-silver uppercase">
+                {siteConfig.brandName}
               </p>
-            )}
+              <h1 className="mt-3 max-w-xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-silver-bright sm:text-6xl">
+                Custom sterling grillz
+              </h1>
+              <p className="mt-4 max-w-md text-base text-text-muted sm:text-lg">
+                Pick your teeth. Pay a deposit. Send your mold. Get silver that fits.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Link
+                  href={cta.href}
+                  className="rounded-md bg-silver-bright px-6 py-3 text-sm font-semibold text-bg hover:bg-silver"
+                >
+                  {cta.label}
+                </Link>
+                <Link
+                  href="/build"
+                  className="rounded-md border border-border px-6 py-3 text-sm text-silver hover:border-silver"
+                >
+                  Open builder
+                </Link>
+              </div>
+              {pricing.founding.enabled && founding.remaining > 0 && (
+                <p className="mt-6 text-sm text-steel">
+                  Founding slots:{' '}
+                  <span className="text-silver-bright">
+                    {founding.remaining} of {founding.total} left
+                  </span>
+                  <span className="block text-xs text-steel-dim">
+                    Soft pricing for early clients — locked for these {founding.total} only.
+                  </span>
+                </p>
+              )}
+            </div>
+            <div className="order-2 relative isolate flex h-[min(70vw,400px)] min-h-[300px] w-full min-w-0 items-center justify-center self-center pb-4 lg:h-[min(52vh,460px)] lg:max-h-[calc(100dvh-11rem)] lg:pb-0">
+              <HeroGrill />
+            </div>
           </div>
         </section>
 

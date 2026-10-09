@@ -51,7 +51,7 @@ Seed documents (custom IDs):
 |---|---|
 | email | string 254 |
 | arch | string 16 (`top`/`bottom`/`both`) |
-| teeth_json | string 16000 |
+| teeth_json | string 20000 |
 | estimate_cents | integer |
 
 #### `orders`
@@ -72,7 +72,7 @@ Seed documents (custom IDs):
 | balance_cents | integer | |
 | stripe_deposit_session_id | string 128 | |
 | stripe_balance_session_id | string 128 | |
-| price_snapshot_json | string 16000 | |
+| price_snapshot_json | string 20000 | |
 | terms_version | string 40 | |
 | terms_accepted_at | string 40 | |
 | terms_accepted_ip | string 64 | |
@@ -114,7 +114,9 @@ Create bucket ID: `mold-photos`
 - **File security**: enabled  
 - **Permissions**: none for guests (server API key only)  
 - Max file size: 10 MB  
-- Allowed: `image/jpeg`, `image/png`, `image/webp`, `image/heic`
+- **Allowed extensions** (console may ask for extensions, not MIME types):  
+  `jpg`, `jpeg`, `png`  
+- The app converts HEIC / WebP / PNG uploads to **JPEG** before storing, so admin photo review works in browsers (iPhone HEIC is not displayable in most browsers).
 
 ## 4. Admin user
 
@@ -123,3 +125,14 @@ Auth → Users → create user with email = `ADMIN_EMAIL` and a strong password.
 ## 5. Env vars
 
 See `.env.example` (`NEXT_PUBLIC_APPWRITE_*`, `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`).
+
+## 6. Automated schema (recommended)
+
+After the empty database + 8 tables exist (or even partially filled):
+
+```bash
+# .env.local must have endpoint, project ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID
+npm run setup:appwrite
+```
+
+This is idempotent: creates missing columns/indexes, seeds settings if absent, then verifies. Never deletes data. Does not touch storage or auth.

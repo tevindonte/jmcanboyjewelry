@@ -9,7 +9,14 @@ export const siteConfig = {
   /** Max mold photos per order. */
   moldPhotoCount: 3,
   moldPhotoMaxBytes: 10 * 1024 * 1024,
-  moldPhotoMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic'] as const,
+  /** Accepted on upload; server converts all to JPEG before Appwrite storage. */
+  moldPhotoMimeTypes: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+  ] as const,
   socials: {
     /** TODO(owner) */
     tiktok: null as string | null,

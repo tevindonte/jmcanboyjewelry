@@ -20,6 +20,8 @@ export const waitlistSchema = z.object({
   name: z.string().min(1).max(120),
   phone: z.string().max(40).optional().nullable(),
   referralCode: z.string().max(32).optional().nullable(),
+  /** Optional saved design id (not stored on waitlist row yet; used by clients). */
+  designId: z.string().min(1).max(36).optional().nullable(),
   honeypot: z.string().max(0).optional().or(z.literal('')),
 });
 

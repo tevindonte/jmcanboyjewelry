@@ -128,6 +128,24 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
     setMsg(res.ok ? 'Balance link emailed' : j.error ?? 'Failed');
   }
 
+  async function sendDepositLink() {
+    const res = await fetch(`/api/admin/orders/${orderId}/payment-link`, {
+      method: 'POST',
+    });
+    const j = await res.json();
+    if (res.ok) setMsg('Deposit payment link emailed');
+    else setMsg(j.error ?? 'Failed');
+    if (j.url) {
+      try {
+        await navigator.clipboard.writeText(j.url);
+        setMsg((m) => `${m ?? ''} (URL copied)`);
+      } catch {
+        /* ignore */
+      }
+    }
+    await load();
+  }
+
   async function reviewScan(scanStatus: 'approved' | 'needs_new_scan') {
     const reason =
       scanStatus === 'needs_new_scan'
@@ -273,6 +291,15 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
           >
             Save manual price
           </button>
+          {order.status === 'pending_deposit' && (
+            <button
+              type="button"
+              onClick={sendDepositLink}
+              className="rounded-md border border-border px-3 py-2 text-sm"
+            >
+              Send payment link
+            </button>
+          )}
           <button
             type="button"
             onClick={sendBalance}

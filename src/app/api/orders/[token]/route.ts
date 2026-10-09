@@ -62,6 +62,9 @@ export async function GET(
       tracking_number: order.tracking_number || null,
       created_at: order.$createdAt,
       design_id: order.design_id,
+      needs_shipping:
+        order.fulfillment === 'kit_mail' &&
+        !String(order.shipping_address_json || '').trim(),
     },
     design,
     events: events.map((e) => ({
@@ -82,6 +85,15 @@ export async function GET(
 const patchSchema = z.object({
   /** Customer mold-step path choice (does not change Stripe amounts). */
   fulfillment: z.enum(['kit_mail', 'local_impression', 'dentist_scan']).optional(),
+  shippingAddress: z
+    .object({
+      line1: z.string().min(1).max(200),
+      city: z.string().min(1).max(100),
+      state: z.string().min(2).max(40),
+      postal_code: z.string().min(3).max(20),
+      country: z.string().length(2).default('US'),
+    })
+    .optional(),
 });
 
 export async function PATCH(
@@ -106,8 +118,25 @@ export async function PATCH(
 
   const body = await request.json().catch(() => null);
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success || !parsed.data.fulfillment) {
-    return NextResponse.json({ error: 'Invalid' }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Check the form and try again.' }, { status: 400 });
+  }
+
+  if (parsed.data.shippingAddress) {
+    await updateDoc(col.orders, order.$id, {
+      shipping_address_json: JSON.stringify(parsed.data.shippingAddress),
+      fulfillment: 'kit_mail',
+    });
+    await createDoc(col.orderEvents, {
+      order_id: order.$id,
+      type: 'shipping_address',
+      note: 'Customer saved kit shipping address',
+    });
+    return NextResponse.json({ ok: true, shipping: true });
+  }
+
+  if (!parsed.data.fulfillment) {
+    return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 });
   }
 
   await updateDoc(col.orders, order.$id, { fulfillment: parsed.data.fulfillment });

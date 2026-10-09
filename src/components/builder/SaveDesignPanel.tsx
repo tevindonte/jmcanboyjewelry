@@ -1,8 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useBuilderStore } from '@/store/builder-store';
 import type { SiteMode } from '@/lib/site.config';
+
+function selectedToothCount(teeth: Record<string, string>) {
+  return Object.values(teeth).filter((s) => s && s !== 'none').length;
+}
+
+function shareUrl(id: string) {
+  return `${window.location.origin}/d/${id}`;
+}
 
 export function SaveDesignPanel({
   siteMode,
@@ -11,6 +20,7 @@ export function SaveDesignPanel({
   siteMode: SiteMode;
   tier: 'founding' | 'friend' | 'standard';
 }) {
+  const router = useRouter();
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
   const teeth = useBuilderStore((s) => s.teeth);
@@ -18,53 +28,100 @@ export function SaveDesignPanel({
   const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ id: string; url: string; metal: string } | null>(
-    null,
-  );
+  const [done, setDone] = useState<{
+    designUrl: string;
+    waitlistPosition?: number;
+    referralLink?: string;
+    alreadyJoined?: boolean;
+  } | null>(null);
 
-  async function save() {
+  async function saveDesign() {
+    const res = await fetch('/api/designs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, arch, teeth, metal, honeypot }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? 'Could not save design');
+    return data as { id: string; url: string; metal: string };
+  }
+
+  async function onPrimary() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/designs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, arch, teeth, metal, honeypot }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Could not save');
-      // Prefer current origin so local saves don't point at production SITE_URL.
-      const url =
-        typeof window !== 'undefined' && data.id
-          ? `${window.location.origin}/d/${data.id}`
-          : data.url;
-      setSaved({ id: data.id, url, metal });
+      if (selectedToothCount(teeth) === 0) {
+        throw new Error('Pick at least one tooth to continue.');
+      }
+      if (!email.trim()) {
+        throw new Error('Enter your email to continue.');
+      }
+
+      const goldQuote = metal === 'gold';
+      const design = await saveDesign();
+      const designUrl = shareUrl(design.id);
+
+      if (goldQuote || siteMode === 'waitlist' || siteMode === 'closed') {
+        const nameGuess = email.split('@')[0]?.trim() || 'Friend';
+        const wl = await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            name: nameGuess,
+            phone: null,
+            honeypot,
+            designId: design.id,
+          }),
+        });
+        const wlData = await wl.json();
+        if (!wl.ok) throw new Error(wlData.error ?? 'Could not join waitlist');
+        setDone({
+          designUrl,
+          waitlistPosition: wlData.position,
+          referralLink:
+            typeof window !== 'undefined' && wlData.referralLink
+              ? wlData.referralLink.replace(
+                  /^https?:\/\/[^/]+/,
+                  window.location.origin,
+                )
+              : wlData.referralLink,
+          alreadyJoined: wlData.alreadyJoined,
+        });
+        return;
+      }
+
+      // Preorder: one email, then checkout (no second email prompt).
+      router.push(
+        `/checkout?design=${encodeURIComponent(design.id)}&email=${encodeURIComponent(email)}`,
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save');
+      setError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
   }
 
-  const goldQuote = (saved?.metal ?? metal) === 'gold';
-  const cta =
-    goldQuote || siteMode !== 'preorder'
+  const primaryLabel =
+    metal === 'gold' || siteMode !== 'preorder'
       ? siteMode === 'closed'
         ? 'Slots are full. Join waitlist'
         : 'Join the waitlist'
       : 'Reserve your slot';
 
-  const ctaHref = saved
-    ? goldQuote || siteMode !== 'preorder'
-      ? `/waitlist?design=${saved.id}`
-      : `/checkout?design=${saved.id}`
-    : null;
-
   return (
     <div className="space-y-3 rounded-lg border border-border bg-bg-elevated p-4">
-      <h2 className="font-display text-lg text-silver-bright">Save design</h2>
-      {!saved ? (
+      <h2 className="font-display text-lg text-silver-bright">
+        {siteMode === 'preorder' && metal !== 'gold' ? 'Reserve' : 'Join the list'}
+      </h2>
+
+      {!done ? (
         <>
+          <p className="text-sm text-text-muted">
+            {siteMode === 'preorder' && metal !== 'gold'
+              ? 'Email once. Next screen is checkout for the deposit.'
+              : 'Email once. We save your design and put you on the waitlist.'}
+          </p>
           <label className="block text-sm text-text-muted">
             Email
             <input
@@ -76,7 +133,6 @@ export function SaveDesignPanel({
               autoComplete="email"
             />
           </label>
-          {/* honeypot */}
           <input
             type="text"
             name="company"
@@ -91,31 +147,44 @@ export function SaveDesignPanel({
           <button
             type="button"
             disabled={loading || !email}
-            onClick={save}
+            onClick={onPrimary}
             className="w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg hover:bg-silver disabled:opacity-50"
           >
-            {loading ? 'Saving…' : 'Save & get link'}
+            {loading ? 'Working…' : primaryLabel}
           </button>
+          {tier === 'founding' && siteMode === 'preorder' && metal !== 'gold' && (
+            <p className="text-xs text-text-muted">
+              Founding client pricing still open. Softer rate while production gets dialed in.
+            </p>
+          )}
         </>
       ) : (
         <>
-          <p className="text-sm text-ok">Saved. Share this link:</p>
-          <a href={saved.url} className="block break-all text-sm text-silver underline">
-            {saved.url}
-          </a>
-          {ctaHref && (
-            <a
-              href={ctaHref}
-              className="block w-full rounded-md bg-silver-bright px-4 py-3 text-center text-sm font-semibold text-bg hover:bg-silver"
-            >
-              {cta}
-            </a>
-          )}
-          {tier === 'founding' && siteMode === 'preorder' && (
-            <p className="text-xs text-text-muted">
-              Founding client pricing still open. Softer rate while production gets dialed in.
-              Locked for these first slots only.
+          <p className="text-sm text-ok">
+            {done.alreadyJoined
+              ? 'You are already on the waitlist. Design saved.'
+              : 'You are on the waitlist. Design saved.'}
+          </p>
+          {done.waitlistPosition != null && (
+            <p className="text-sm text-text-muted">
+              Approximate spot:{' '}
+              <span className="text-silver-bright">#{done.waitlistPosition}</span>
             </p>
+          )}
+          <p className="text-sm text-text-muted">Share your design:</p>
+          <a href={done.designUrl} className="block break-all text-sm text-silver underline">
+            {done.designUrl}
+          </a>
+          {done.referralLink && (
+            <>
+              <p className="mt-2 text-sm text-text-muted">Your referral link:</p>
+              <a
+                href={done.referralLink}
+                className="block break-all text-sm text-silver underline"
+              >
+                {done.referralLink}
+              </a>
+            </>
           )}
         </>
       )}

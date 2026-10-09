@@ -65,7 +65,13 @@ export function AdminCreateOrder({ onCreated }: { onCreated: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setMsg(`Created ${data.tier} order: ${data.orderUrl}`);
+      setMsg(
+        `Created ${data.tier} order: ${data.orderUrl}${
+          !markDeposit
+            ? ' Open the order and use Send payment link to email a Stripe deposit URL.'
+            : ''
+        }`,
+      );
       onCreated();
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Failed');

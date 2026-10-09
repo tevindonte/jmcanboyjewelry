@@ -66,6 +66,33 @@ export async function sendOrderConfirmation(opts: {
   });
 }
 
+export async function sendDepositPaymentLink(opts: {
+  to: string;
+  name: string;
+  checkoutUrl: string;
+  accessToken: string;
+  depositCents: number | null;
+}) {
+  const resend = getResend();
+  const orderLink = `${siteUrl()}/order/${opts.accessToken}`;
+  const deposit =
+    opts.depositCents != null
+      ? `$${(opts.depositCents / 100).toFixed(0)}`
+      : 'your deposit';
+
+  await resend.emails.send({
+    from: fromAddress(),
+    to: opts.to,
+    subject: `Pay your deposit · ${siteConfig.brandName}`,
+    html: `
+      <p>Hey ${opts.name},</p>
+      <p>Here is your private deposit link (${deposit}):</p>
+      <p><a href="${opts.checkoutUrl}">${opts.checkoutUrl}</a></p>
+      <p>After you pay, track the order here: <a href="${orderLink}">${orderLink}</a></p>
+    `,
+  });
+}
+
 export async function sendBalanceLink(opts: {
   to: string;
   name: string;

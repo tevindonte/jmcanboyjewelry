@@ -27,7 +27,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = depositCheckoutSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid checkout data' }, { status: 400 });
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join('.') ?? '';
+    let error = 'Check the form and try again.';
+    if (path.includes('email')) error = 'Enter a valid email for your receipt and order link.';
+    else if (path.includes('name')) error = 'Enter your name so we can email your order link.';
+    else if (path.includes('designId')) error = 'Design missing. Go back to the builder and save again.';
+    else if (path.includes('fulfillment')) error = 'Choose how we get your fit (kit, local, or scan).';
+    else if (path.includes('termsAccepted')) error = 'Accept the terms to continue.';
+    else if (path.includes('shippingAddress')) error = 'Shipping is collected after payment on your order link.';
+    else if (issue?.message) error = issue.message;
+    return NextResponse.json({ error }, { status: 400 });
   }
   if (parsed.data.honeypot) {
     return NextResponse.json({ ok: true });
@@ -72,14 +82,19 @@ export async function POST(request: Request) {
 
   if (estimate.selectedToothCount === 0) {
     return NextResponse.json(
-      { error: 'Pick at least one tooth in the builder before paying a deposit.' },
+      { error: 'Pick at least one tooth to continue. Go back to the builder.' },
       { status: 400 },
     );
   }
 
   if (!estimate.priced || estimate.depositCents == null || estimate.totalCents == null) {
     return NextResponse.json(
-      { error: 'Pricing is not configured yet. Price on request.' },
+      {
+        error:
+          metal === 'gold'
+            ? 'Solid gold is quoted per order. Join the waitlist and we will email a price.'
+            : 'Pricing is not available for this design yet. Email us or join the waitlist.',
+      },
       { status: 400 },
     );
   }

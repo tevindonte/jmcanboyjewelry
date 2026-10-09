@@ -10,23 +10,23 @@ export function CheckoutForm({
   designId,
   foundingAvailable,
   depositWithoutKitCents,
+  prefillEmail,
+  minimumHint,
 }: {
   designId: string;
   foundingAvailable: boolean;
   /** Server-calculated deposit before kit fee (null if unpriced). */
   depositWithoutKitCents: number | null;
+  prefillEmail?: string;
+  /** Shown when under the minimum order after founding discount. */
+  minimumHint?: string | null;
 }) {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState(prefillEmail ?? '');
   const [fulfillment, setFulfillment] = useState<FulfillmentChoice>('kit_mail');
   const [terms, setTerms] = useState(false);
   const [mediaConsent, setMediaConsent] = useState(false);
   const [honeypot, setHoneypot] = useState('');
-  const [line1, setLine1] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [postal, setPostal] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +47,14 @@ export function CheckoutForm({
       setError('Founding price needs the filming/posting consent checkbox.');
       return;
     }
+    if (!name.trim()) {
+      setError('Enter your name so we can email your order link.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Enter the email for your receipt and order link.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -55,23 +63,20 @@ export function CheckoutForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           designId,
-          name,
-          email,
-          phone: phone || null,
+          name: name.trim(),
+          email: email.trim(),
+          phone: null,
           fulfillment,
           termsAccepted: true,
           mediaConsent: foundingAvailable ? mediaConsent : undefined,
           honeypot,
-          shippingAddress:
-            fulfillment === 'kit_mail'
-              ? { line1, city, state, postal_code: postal, country: 'US' }
-              : null,
+          shippingAddress: null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
       if (data.url) window.location.href = data.url;
-      else throw new Error('No checkout URL');
+      else throw new Error('Stripe did not return a checkout URL. Try again.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
       setLoading(false);
@@ -88,15 +93,10 @@ export function CheckoutForm({
         </div>
       )}
 
-      <label className="block text-sm text-text-muted">
-        Name
-        <input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 outline-none focus:border-silver"
-        />
-      </label>
+      {minimumHint && (
+        <p className="rounded-md border border-border px-3 py-2 text-sm text-steel">{minimumHint}</p>
+      )}
+
       <label className="block text-sm text-text-muted">
         Email
         <input
@@ -108,17 +108,21 @@ export function CheckoutForm({
         />
       </label>
       <label className="block text-sm text-text-muted">
-        Phone
+        Name
+        <span className="text-xs text-steel"> (for your order emails)</span>
         <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 outline-none focus:border-silver"
         />
       </label>
 
       <fieldset>
-        <legend className="text-sm text-text-muted">Fulfillment</legend>
+        <legend className="text-sm text-text-muted">How we get your fit</legend>
+        <p className="mt-1 text-xs text-steel">
+          Kit shipping address and mold/scan upload happen after you pay, on your order link.
+        </p>
         <div className="mt-2 space-y-2">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -165,42 +169,6 @@ export function CheckoutForm({
             <span className="text-text-muted"> (kit fee waived for scan path)</span>
           )}
         </p>
-      )}
-
-      {fulfillment === 'kit_mail' && (
-        <div className="space-y-3 rounded-md border border-border p-3">
-          <p className="text-xs text-steel">Shipping address for the kit</p>
-          <input
-            required
-            placeholder="Address"
-            value={line1}
-            onChange={(e) => setLine1(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm outline-none focus:border-silver"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              required
-              placeholder="City"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm outline-none focus:border-silver"
-            />
-            <input
-              required
-              placeholder="State"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm outline-none focus:border-silver"
-            />
-          </div>
-          <input
-            required
-            placeholder="ZIP"
-            value={postal}
-            onChange={(e) => setPostal(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm outline-none focus:border-silver"
-          />
-        </div>
       )}
 
       <label className="flex items-start gap-2 text-sm text-text-muted">

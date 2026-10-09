@@ -136,13 +136,6 @@ describe('POST /api/checkout/deposit', () => {
           email: 'buyer@example.com',
           fulfillment: 'kit_mail',
           termsAccepted: true,
-          shippingAddress: {
-            line1: '1 Main',
-            city: 'New Rochelle',
-            state: 'NY',
-            postal_code: '10801',
-            country: 'US',
-          },
         }),
       }),
     );

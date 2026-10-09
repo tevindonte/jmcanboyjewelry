@@ -36,8 +36,11 @@ export default async function DesignSharePage({
   const goldQuote = metal === 'gold';
   const cta =
     goldQuote || settings.site_mode !== 'preorder'
-      ? { href: `/waitlist?design=${design.$id}`, label: 'Join waitlist' }
-      : { href: `/checkout?design=${design.$id}`, label: 'Reserve this design' };
+      ? { href: `/build`, label: 'Build yours & join waitlist' }
+      : {
+          href: `/checkout?design=${design.$id}&email=${encodeURIComponent(String(design.email || ''))}`,
+          label: 'Reserve this design',
+        };
 
   const metalLabel = pricing.metals[metal].label;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { formatCents } from '@/lib/pricing';
 import { siteConfig } from '@/lib/site.config';
@@ -25,6 +25,7 @@ type OrderPayload = {
     fulfillment: string;
     tracking_number: string | null;
     name: string;
+    needs_shipping?: boolean;
   };
   design: { arch: string; teeth: Record<string, string> } | null;
   events: { type: string; note: string | null; created_at: string }[];
@@ -66,6 +67,10 @@ export function OrderClient({ token }: { token: string }) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [path, setPath] = useState<MoldPath>('kit');
   const [busy, setBusy] = useState(false);
+  const [line1, setLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postal, setPostal] = useState('');
 
   async function load() {
     const res = await fetch(`/api/orders/${token}`);
@@ -82,6 +87,34 @@ export function OrderClient({ token }: { token: string }) {
   useEffect(() => {
     load();
   }, [token]);
+
+  async function saveShipping(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/orders/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shippingAddress: {
+            line1,
+            city,
+            state,
+            postal_code: postal,
+            country: 'US',
+          },
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? 'Could not save address');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save address');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function choosePath(next: MoldPath) {
     setPath(next);
@@ -231,6 +264,53 @@ export function OrderClient({ token }: { token: string }) {
           </p>
         )}
       </div>
+
+      {order.needs_shipping && order.status !== 'pending_deposit' && (
+        <form
+          onSubmit={saveShipping}
+          className="space-y-3 rounded-lg border border-border p-4"
+        >
+          <h2 className="font-display text-lg text-silver-bright">Kit shipping address</h2>
+          <p className="text-sm text-text-muted">Where should we mail the impression kit?</p>
+          <input
+            required
+            placeholder="Address"
+            value={line1}
+            onChange={(e) => setLine1(e.target.value)}
+            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              required
+              placeholder="City"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
+            />
+            <input
+              required
+              placeholder="State"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
+            />
+          </div>
+          <input
+            required
+            placeholder="ZIP"
+            value={postal}
+            onChange={(e) => setPostal(e.target.value)}
+            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-md bg-silver-bright px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+          >
+            {busy ? 'Saving…' : 'Save address'}
+          </button>
+        </form>
+      )}
 
       {orderOpen && (
         <div className="rounded-lg border border-border p-4">

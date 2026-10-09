@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold text-silver-bright">Privacy</h1>
         <p className="mt-4 text-sm leading-relaxed text-text-muted">
-          {siteConfig.brandName} collects what we need to make and ship your grill — nothing extra
+          {siteConfig.brandName} collects what we need to make and ship your grill, nothing extra
           for ads.
         </p>
 
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Dentist scans</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
-          If you upload a dentist 3D scan, it is stored in a private bucket (API key only — no
+          If you upload a dentist 3D scan, it is stored in a private bucket (API key only, no
           public read). Used only to make your piece. You can delete it from your order link, or
           email us to request deletion. Admins download via short-lived signed links.
         </p>

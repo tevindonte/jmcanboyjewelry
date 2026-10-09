@@ -38,7 +38,7 @@ export async function POST(request: Request) {
           currency: 'usd',
           unit_amount: balance,
           product_data: {
-            name: 'JMCANBOY Jewelry — balance',
+            name: 'JMCANBOY Jewelry balance',
             description: 'Remaining balance for custom sterling grill',
           },
         },

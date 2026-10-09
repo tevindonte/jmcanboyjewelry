@@ -65,7 +65,7 @@ export function AdminCreateOrder({ onCreated }: { onCreated: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setMsg(`Created ${data.tier} order — ${data.orderUrl}`);
+      setMsg(`Created ${data.tier} order: ${data.orderUrl}`);
       onCreated();
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Failed');
@@ -78,7 +78,7 @@ export function AdminCreateOrder({ onCreated }: { onCreated: () => void }) {
     <section className="mt-6 rounded-lg border border-border p-4">
       <h2 className="font-display text-lg text-silver-bright">Create order</h2>
       <p className="mt-1 text-sm text-text-muted">
-        Friends &amp; in-person — skips Stripe when you mark paid. Friend never uses a founding
+        Friends &amp; in-person. Skips Stripe when you mark paid. Friend never uses a founding
         slot. Default teeth = top/bottom 6 plain (edit in builder later if needed).
       </p>
       <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">

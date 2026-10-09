@@ -17,7 +17,7 @@ export default async function OrderPage({
       <main className="mx-auto max-w-lg px-4 py-16">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Your order</h1>
         <p className="mt-2 text-sm text-text-muted">
-          Magic link — no account needed. Bookmark this page.
+          Magic link. No account needed. Bookmark this page.
         </p>
         <div className="mt-8">
           <OrderClient token={token} />

@@ -18,7 +18,7 @@ Create database with ID: `jmcanboy` (or set `APPWRITE_DATABASE_ID`).
 
 ### Collections (document IDs = collection IDs below)
 
-Permissions: **no public access** — only the API key (server) reads/writes.
+Permissions: **no public access**. Only the API key (server) reads/writes.
 
 #### `settings`
 | Attr | Type | Required |
@@ -129,12 +129,12 @@ Create bucket ID: `mold-photos`
 
 Create bucket ID: `scans` (or set `APPWRITE_BUCKET_SCANS`)  
 - **File security**: enabled  
-- **Permissions**: none for guests (server API key only — no public read)  
+- **Permissions**: none for guests (server API key only, no public read)  
 - Max file size: **50,000,000 bytes** (keep in sync with `siteConfig.dentistScan.maxBytes`)  
 - **Allowed extensions**: `stl`, `obj`, `ply`  
 - Used for optional dentist 3D scans on the order mold step.
 
-Appwrite Cloud free tier often allows only **one** storage bucket. If creating `scans` fails with a plan limit, either upgrade or temporarily set `APPWRITE_BUCKET_SCANS` to your existing private bucket ID and add `stl`, `obj`, `ply` to that bucket’s allowed extensions (still API-key only — no public read).
+Appwrite Cloud free tier often allows only **one** storage bucket. If creating `scans` fails with a plan limit, either upgrade or temporarily set `APPWRITE_BUCKET_SCANS` to your existing private bucket ID and add `stl`, `obj`, `ply` to that bucket’s allowed extensions (still API-key only, no public read).
 
 ## 4. Admin user
 

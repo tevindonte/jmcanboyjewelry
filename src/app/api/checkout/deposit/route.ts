@@ -136,7 +136,7 @@ export async function POST(request: Request) {
             currency: 'usd',
             unit_amount: estimate.depositCents,
             product_data: {
-              name: 'JMCANBOY Jewelry — deposit',
+              name: 'JMCANBOY Jewelry deposit',
               description:
                 tier === 'founding'
                   ? 'Founding client deposit for custom sterling grill'

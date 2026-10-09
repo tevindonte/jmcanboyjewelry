@@ -15,7 +15,7 @@ const CONTENTS = [
 ];
 
 const STEPS = [
-  'Wash hands. Read the card once before you start — putty sets on a timer.',
+  'Wash hands. Read the card once before you start. Putty sets on a timer.',
   'Mix/load trays exactly as shown in the video.',
   'Bite centered, hold still for the full set time. Do not talk or chew.',
   'Remove straight down/up. Check that teeth details show clean.',
@@ -36,7 +36,7 @@ export default function KitPage() {
           Kit fee:{' '}
           {pricing.kitFee != null ? formatUsd(pricing.kitFee) : 'Price on request'}
           {pricing.kitCreditedToBalance
-            ? ' — charged in your deposit, credited so your total stays the grill price. Non-refundable once the kit ships.'
+            ? '. Charged in your deposit, credited so your total stays the grill price. Non-refundable once the kit ships.'
             : ''}{' '}
           Local pickups: no kit fee.
         </p>

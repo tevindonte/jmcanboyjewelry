@@ -56,12 +56,12 @@ export async function sendOrderConfirmation(opts: {
   await resend.emails.send({
     from: fromAddress(),
     to: opts.to,
-    subject: `Deposit received — ${siteConfig.brandName}`,
+    subject: `Deposit received · ${siteConfig.brandName}`,
     html: `
       <p>Hey ${opts.name},</p>
       <p>Got your deposit (${deposit}). Track your order and upload mold photos here:</p>
       <p><a href="${link}">${link}</a></p>
-      <p>Bookmark this link — you don't need an account.</p>
+      <p>Bookmark this link. You don't need an account.</p>
     `,
   });
 }
@@ -78,7 +78,7 @@ export async function sendBalanceLink(opts: {
   await resend.emails.send({
     from: fromAddress(),
     to: opts.to,
-    subject: `Balance due — ${siteConfig.brandName}`,
+    subject: `Balance due · ${siteConfig.brandName}`,
     html: `
       <p>Hey ${opts.name},</p>
       <p>Your piece is ready for the balance. Pay here:</p>
@@ -102,8 +102,8 @@ export async function sendMoldReviewResult(opts: {
     from: fromAddress(),
     to: opts.to,
     subject: opts.approved
-      ? `Mold photos approved — ${siteConfig.brandName}`
-      : `Mold photos need a retake — ${siteConfig.brandName}`,
+      ? `Mold photos approved · ${siteConfig.brandName}`
+      : `Mold photos need a retake · ${siteConfig.brandName}`,
     html: `
       <p>Hey ${opts.name},</p>
       <p>${
@@ -131,8 +131,8 @@ export async function sendScanReviewResult(opts: {
     from: fromAddress(),
     to: opts.to,
     subject: opts.approved
-      ? `Scan approved — ${siteConfig.brandName}`
-      : `Need a new scan — ${siteConfig.brandName}`,
+      ? `Scan approved · ${siteConfig.brandName}`
+      : `Need a new scan · ${siteConfig.brandName}`,
     html: `
       <p>Hey ${opts.name},</p>
       <p>${
@@ -157,7 +157,7 @@ export async function sendLaunchEmail(opts: {
   await resend.emails.send({
     from: fromAddress(),
     to: opts.to,
-    subject: `Pre-orders are open — ${siteConfig.brandName}`,
+    subject: `Pre-orders are open · ${siteConfig.brandName}`,
     html: `
       <p>Hey ${opts.name},</p>
       <p>Slots are open. Build your grill and reserve yours:</p>

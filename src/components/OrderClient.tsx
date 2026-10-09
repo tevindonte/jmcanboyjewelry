@@ -202,7 +202,7 @@ export function OrderClient({ token }: { token: string }) {
           {order.status.replace(/_/g, ' ')}
         </p>
         {order.tier === 'founding' && (
-          <p className="mt-2 text-xs text-steel">Founding client — fit check included.</p>
+          <p className="mt-2 text-xs text-steel">Founding client. Fit check included.</p>
         )}
         {order.tier === 'friend' && (
           <p className="mt-2 text-xs text-steel">Friend / custom order.</p>
@@ -236,7 +236,7 @@ export function OrderClient({ token }: { token: string }) {
         <div className="rounded-lg border border-border p-4">
           <h2 className="font-display text-lg text-silver-bright">Mold</h2>
           <p className="mt-1 text-sm text-text-muted">
-            Choose how we get your fit — kit photos or a dentist 3D scan.
+            Choose how we get your fit: kit photos or a dentist 3D scan.
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <button
@@ -363,7 +363,7 @@ export function OrderClient({ token }: { token: string }) {
           {events.map((e, i) => (
             <li key={`${e.created_at}-${i}`}>
               <span className="text-silver">{e.type.replace(/_/g, ' ')}</span>
-              {e.note ? ` — ${e.note}` : ''}
+              {e.note ? `: ${e.note}` : ''}
             </li>
           ))}
         </ol>

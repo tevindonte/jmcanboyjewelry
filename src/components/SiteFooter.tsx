@@ -64,7 +64,7 @@ export function SiteFooter() {
         </div>
       </div>
       <p className="border-t border-border px-4 py-4 text-center text-xs text-steel-dim">
-        Cosmetic jewelry — not a dental or medical product.
+        Cosmetic jewelry, not a dental or medical product.
       </p>
     </footer>
   );

@@ -388,7 +388,7 @@ export function BuilderControls({
                     </dd>
                   </div>
                   <div className="rounded-md border border-border/50 bg-bg-soft/40 px-2.5 py-2 text-xs leading-snug text-steel">
-                    Minimum order {minLabel} — total raised from{' '}
+                    Minimum order {minLabel}. Total raised from{' '}
                     {formatCents(estimate.preMinimumCents)} to meet the floor.
                   </div>
                 </>
@@ -417,7 +417,7 @@ export function BuilderControls({
       </div>
 
       <p className="text-xs leading-relaxed text-steel">
-        Style preview only — fit comes from your mold.
+        Style preview only. Fit comes from your mold.
       </p>
     </div>
   );

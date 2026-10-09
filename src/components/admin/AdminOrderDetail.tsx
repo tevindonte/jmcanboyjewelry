@@ -409,7 +409,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
         <ol className="mt-3 space-y-1 text-sm text-text-muted">
           {events.map((e, i) => (
             <li key={i}>
-              {new Date(e.created_at).toLocaleString()} — {e.type}
+              {new Date(e.created_at).toLocaleString()}: {e.type}
               {e.note ? `: ${e.note}` : ''}
             </li>
           ))}

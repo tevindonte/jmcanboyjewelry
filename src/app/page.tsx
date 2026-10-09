@@ -10,7 +10,7 @@ const STEPS = [
   { title: 'Impression', body: 'Mail kit or in-person in New Rochelle.' },
   { title: 'Scan', body: 'Your mold becomes the fit source of truth.' },
   { title: 'Print', body: 'Resin model of your design on your arch.' },
-  { title: 'Cast', body: 'Sterling silver — the real metal, not plated.' },
+  { title: 'Cast', body: 'Sterling silver. The real metal, not plated.' },
   { title: 'Polish', body: 'Brushed or polished finish, cleaned up.' },
   { title: 'Ship', body: 'Out the door with a care card.' },
 ];
@@ -22,15 +22,15 @@ const FAQ = [
   },
   {
     q: 'What are founding clients?',
-    a: `I'm early in production. The first ${pricing.founding.slots} paying clients get ${pricing.founding.discountPercent}% off and an honest fit-check process. Expect possible small adjustments. Founding discount needs a plain-language OK to film/post your process — you can revoke for future posts.`,
+    a: `I'm early in production. The first ${pricing.founding.slots} paying clients get ${pricing.founding.discountPercent}% off and an honest fit-check process. Expect possible small adjustments. Founding discount needs a plain-language OK to film/post your process. You can revoke for future posts.`,
   },
   {
     q: 'How does the deposit work?',
-    a: `You pay a ${pricing.depositPercent}% deposit to reserve your slot (plus the $${pricing.kitFee} kit fee in the deposit if we mail a kit — credited so your total stays the grill price). Rest is due when the piece is ready. Minimum order $${pricing.minimumOrder}. See Terms for when the deposit / kit fee become non-refundable.`,
+    a: `You pay a ${pricing.depositPercent}% deposit to reserve your slot (plus the $${pricing.kitFee} kit fee in the deposit if we mail a kit, credited so your total stays the grill price). Rest is due when the piece is ready. Minimum order $${pricing.minimumOrder}. See Terms for when the deposit / kit fee become non-refundable.`,
   },
   {
     q: 'Do I need a dentist?',
-    a: 'No. You take a home impression with the kit, or come in locally for an impression. Fit comes from that mold — not the 3D preview.',
+    a: 'No. You take a home impression with the kit, or come in locally for an impression. Fit comes from that mold, not the 3D preview.',
   },
   {
     q: 'Can I eat or sleep in them?',
@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: 'How long does it take?',
-    a: 'Turnaround is an estimate, not a guarantee. Production is still getting dialed in — founding clients get that honesty upfront.',
+    a: 'Turnaround is an estimate, not a guarantee. Production is still getting dialed in. Founding clients get that honesty upfront.',
   },
 ];
 
@@ -50,7 +50,7 @@ export default async function HomePage() {
     settings.site_mode === 'preorder'
       ? { href: '/build', label: 'Reserve your slot' }
       : settings.site_mode === 'closed'
-        ? { href: '/waitlist', label: 'Slots are full — join waitlist' }
+        ? { href: '/waitlist', label: 'Slots are full. Join waitlist' }
         : { href: '/waitlist', label: 'Join the waitlist' };
 
   return (
@@ -102,7 +102,7 @@ export default async function HomePage() {
                     {founding.remaining} of {founding.total} left
                   </span>
                   <span className="block text-xs text-steel-dim">
-                    Soft pricing for early clients — locked for these {founding.total} only.
+                    Soft pricing for early clients, locked for these {founding.total} only.
                   </span>
                 </p>
               )}

@@ -83,8 +83,8 @@ export function AdminPricingPanel() {
     <section className="mt-6 rounded-lg border border-border p-4">
       <h2 className="font-display text-lg text-silver-bright">Pricing</h2>
       <p className="mt-1 text-sm text-text-muted">
-        Silver moves ~$1.50/tooth per $20 spot change. On free Render, type the spot in weekly —
-        no cron needed.
+        Silver moves ~$1.50/tooth per $20 spot change. On free Render, type the spot in weekly.
+        No cron needed.
       </p>
 
       <form onSubmit={submitManual} className="mt-4 flex flex-wrap items-end gap-2">

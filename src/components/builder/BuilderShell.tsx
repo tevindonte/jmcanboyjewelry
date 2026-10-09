@@ -66,7 +66,7 @@ export function BuilderShell({
             </div>
           ) : (
             <p className="rounded-md border border-border px-4 py-6 text-center text-sm text-steel">
-              3D preview unavailable — use the tooth chart above.
+              3D preview unavailable. Use the tooth chart above.
             </p>
           )}
         </div>
@@ -81,7 +81,7 @@ export function BuilderShell({
         <SaveDesignPanel siteMode={siteMode} tier={tier} />
         <p className="text-sm text-text-muted">
           Local in <span className="text-silver">New Rochelle, NY</span>? You can skip the mail kit
-          and get your impression in person — choose that at checkout.{' '}
+          and get your impression in person. Choose that at checkout.{' '}
           <Link href="/kit" className="text-silver underline-offset-2 hover:underline">
             See the kit
           </Link>

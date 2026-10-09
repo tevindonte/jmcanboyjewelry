@@ -49,7 +49,7 @@ export default async function CheckoutPage({
         <h1 className="font-display text-3xl font-bold text-silver-bright">Reserve your slot</h1>
         <p className="mt-3 text-text-muted">
           Deposit via Stripe (card, Cash App Pay, Apple Pay, Google Pay). Price is calculated on
-          the server from your saved design — and frozen on the order.
+          the server from your saved design and frozen on the order.
         </p>
         <div className="mt-8">
           <CheckoutForm

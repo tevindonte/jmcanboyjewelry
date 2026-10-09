@@ -82,8 +82,8 @@ export function CheckoutForm({
     <form onSubmit={submit} className="space-y-4">
       {foundingAvailable && (
         <div className="rounded-md border border-border bg-bg-elevated p-3 text-sm text-text-muted">
-          Founding client: {pricing.founding.discountPercent}% off. I&apos;m early in production —
-          expect a fit check. Founding prices are locked for the first{' '}
+          Founding client: {pricing.founding.discountPercent}% off. I&apos;m early in production,
+          so expect a fit check. Founding prices are locked for the first{' '}
           {pricing.founding.slots} paying clients only.
         </div>
       )}
@@ -162,7 +162,7 @@ export function CheckoutForm({
             </span>
           )}
           {fulfillment === 'dentist_scan' && (
-            <span className="text-text-muted"> — kit fee waived for scan path</span>
+            <span className="text-text-muted"> (kit fee waived for scan path)</span>
           )}
         </p>
       )}

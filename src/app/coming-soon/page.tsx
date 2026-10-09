@@ -15,7 +15,7 @@ export default function ComingSoonPage() {
         Coming soon
       </h1>
       <p className="mt-4 max-w-md text-text-muted">
-        Custom sterling silver grillz. Private for now — check back when we open slots.
+        Custom sterling silver grillz. Private for now. Check back when we open slots.
       </p>
     </main>
   );

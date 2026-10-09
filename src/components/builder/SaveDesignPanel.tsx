@@ -45,7 +45,7 @@ export function SaveDesignPanel({
   const cta =
     goldQuote || siteMode !== 'preorder'
       ? siteMode === 'closed'
-        ? 'Slots are full — join waitlist'
+        ? 'Slots are full. Join waitlist'
         : 'Join the waitlist'
       : 'Reserve your slot';
 
@@ -108,7 +108,7 @@ export function SaveDesignPanel({
           )}
           {tier === 'founding' && siteMode === 'preorder' && (
             <p className="text-xs text-text-muted">
-              Founding client pricing still open — softer rate while production gets dialed in.
+              Founding client pricing still open. Softer rate while production gets dialed in.
               Locked for these first slots only.
             </p>
           )}

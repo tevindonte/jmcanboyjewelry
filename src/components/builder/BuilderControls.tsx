@@ -164,7 +164,7 @@ export function BuilderControls({
               aria-checked={arch === a.id}
               onClick={() => setArch(a.id)}
               className={[
-                'flex-1 rounded-md border px-3 py-2 text-sm transition-colors',
+                'min-h-11 flex-1 rounded-md border px-3 py-2 text-sm transition-colors',
                 arch === a.id
                   ? 'border-silver bg-silver/10 text-silver-bright'
                   : 'border-border text-text-muted hover:border-steel',
@@ -215,7 +215,7 @@ export function BuilderControls({
             <button
               type="button"
               onClick={() => removeTooth(activeId)}
-              className="text-xs text-steel hover:text-silver"
+              className="min-h-11 px-2 text-xs text-steel hover:text-silver"
             >
               Remove
             </button>
@@ -287,7 +287,7 @@ export function BuilderControls({
         <button
           type="button"
           onClick={clearStyles}
-          className="rounded-md border border-border px-3 py-1.5 text-xs text-text-muted hover:text-silver"
+          className="min-h-11 rounded-md border border-border px-3 py-2 text-xs text-text-muted hover:text-silver"
         >
           Clear all
         </button>
@@ -314,7 +314,11 @@ export function BuilderControls({
       )}
 
       {/* Estimate */}
-      <div className="rounded-md border border-border bg-bg-elevated px-4 py-3">
+      <div
+        className="rounded-md border border-border bg-bg-elevated px-4 py-3"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         {!goldQuote && (
           <div className="mb-3 flex flex-wrap gap-3 text-xs text-steel">
             <span>
@@ -329,7 +333,9 @@ export function BuilderControls({
           </div>
         )}
 
-        <p className="mb-2 text-sm text-text-muted">Estimate</p>
+        <p className="mb-2 text-sm text-text-muted" id="builder-estimate-label">
+          Estimate
+        </p>
 
         {goldQuote ? (
           <>
@@ -445,7 +451,7 @@ function SummaryRow({
         <button
           type="button"
           onClick={onRemove}
-          className="text-xs text-steel hover:text-silver"
+          className="min-h-11 min-w-11 px-2 text-xs text-steel hover:text-silver"
           aria-label={`Remove ${id}`}
         >
           Remove

@@ -1,0 +1,6 @@
+Date,Tester,Browser / OS,Method,Pages / flow,Pass / Fail / Notes,Fixes after
+2026-11-11,Dev (Cursor),N/A — code remediation,Code changes,"Sitewide, /build, forms, /accessibility","Code landed; human verify pending","Skip link, focus rings, contrast, FAQ accordion, aria-live estimate/deposit, error focus, tooth labels, touch targets, a11y statement, testing log"
+,,,,Keyboard-only (/ → /build → waitlist or checkout),,
+,,,,200% zoom (home, build, kit, checkout),,
+,,,,Narrator or NVDA (forms, FAQ, tooth chart, errors),,
+,,,,Stripe Checkout handoff,,

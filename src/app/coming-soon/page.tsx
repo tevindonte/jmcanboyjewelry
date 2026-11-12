@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function ComingSoonPage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-4 text-center">
+    <main id="main" tabIndex={-1} className="flex min-h-dvh flex-col items-center justify-center px-4 text-center outline-none">
       <p className="font-display text-xs font-semibold tracking-[0.2em] text-steel uppercase">
         {siteConfig.brandName}
       </p>

@@ -91,9 +91,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          metal === 'gold'
-            ? 'Solid gold is quoted per order. Join the waitlist and we will email a price.'
-            : 'Pricing is not available for this design yet. Email us or join the waitlist.',
+          'Pricing is not available for this design yet. Email us or join the waitlist.',
       },
       { status: 400 },
     );

@@ -56,7 +56,7 @@ function ToothMark({ id }: { id: ToothId }) {
       onClick={() => tapTooth(id)}
       onPointerEnter={() => setHovered(id)}
       onPointerLeave={() => setHovered(null)}
-      aria-label={`Tooth ${id}${capped ? `, ${style}` : ''}`}
+      aria-label={`Tooth ${id}${capped ? `, ${style}` : ', uncapped'}${selected ? ', selected' : ', not selected'}`}
       aria-pressed={selected}
       className={[
         // Fill slot width — equal spacing across the full panel, no end overlap

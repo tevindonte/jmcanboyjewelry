@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-16 prose-invert">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-16 prose-invert outline-none">
         <p className="text-xs text-steel-dim">
           Draft · version {siteConfig.termsVersion} · needs qualified review before launch
         </p>

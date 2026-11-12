@@ -47,7 +47,7 @@ export default async function DesignSharePage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-12">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-12 outline-none">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Saved design</h1>
         <p className="mt-2 text-text-muted">
           Read-only preview · {metalLabel}. Estimate:{' '}

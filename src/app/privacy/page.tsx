@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-16">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-16 outline-none">
         <p className="text-xs text-steel-dim">
           Draft · needs qualified review before launch
         </p>

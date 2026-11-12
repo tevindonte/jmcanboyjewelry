@@ -210,8 +210,18 @@ export function OrderClient({ token }: { token: string }) {
     }
   }
 
-  if (error && !data) return <p className="text-danger">{error}</p>;
-  if (!data) return <p className="text-text-muted">Loading…</p>;
+  if (error && !data)
+    return (
+      <p role="alert" className="text-danger">
+        {error}
+      </p>
+    );
+  if (!data)
+    return (
+      <p role="status" className="text-text-muted">
+        Loading…
+      </p>
+    );
 
   const { order, photos, events, scan } = data;
   const orderOpen = !['shipped', 'cancelled', 'refunded', 'pending_deposit'].includes(
@@ -272,39 +282,52 @@ export function OrderClient({ token }: { token: string }) {
         >
           <h2 className="font-display text-lg text-silver-bright">Kit shipping address</h2>
           <p className="text-sm text-text-muted">Where should we mail the impression kit?</p>
-          <input
-            required
-            placeholder="Address"
-            value={line1}
-            onChange={(e) => setLine1(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
-          />
+          <label className="block text-sm text-text-muted">
+            Street address
+            <input
+              required
+              autoComplete="address-line1"
+              value={line1}
+              onChange={(e) => setLine1(e.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text"
+            />
+          </label>
           <div className="grid grid-cols-2 gap-2">
-            <input
-              required
-              placeholder="City"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
-            />
-            <input
-              required
-              placeholder="State"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
-            />
+            <label className="block text-sm text-text-muted">
+              City
+              <input
+                required
+                autoComplete="address-level2"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="block text-sm text-text-muted">
+              State
+              <input
+                required
+                autoComplete="address-level1"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text"
+              />
+            </label>
           </div>
-          <input
-            required
-            placeholder="ZIP"
-            value={postal}
-            onChange={(e) => setPostal(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
-          />
+          <label className="block text-sm text-text-muted">
+            ZIP
+            <input
+              required
+              autoComplete="postal-code"
+              value={postal}
+              onChange={(e) => setPostal(e.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text"
+            />
+          </label>
           <button
             type="submit"
             disabled={busy}
+            aria-busy={busy}
             className="rounded-md bg-silver-bright px-4 py-2 text-sm font-semibold text-bg disabled:opacity-50"
           >
             {busy ? 'Saving…' : 'Save address'}
@@ -318,9 +341,15 @@ export function OrderClient({ token }: { token: string }) {
           <p className="mt-1 text-sm text-text-muted">
             Choose how we get your fit: kit photos or a dentist 3D scan.
           </p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div
+            className="mt-4 grid gap-2 sm:grid-cols-2"
+            role="radiogroup"
+            aria-label="How we get your mold"
+          >
             <button
               type="button"
+              role="radio"
+              aria-checked={path === 'kit'}
               onClick={() => choosePath('kit')}
               className={`rounded-md border px-3 py-3 text-left text-sm ${
                 path === 'kit'
@@ -335,6 +364,8 @@ export function OrderClient({ token }: { token: string }) {
             </button>
             <button
               type="button"
+              role="radio"
+              aria-checked={path === 'scan'}
               onClick={() => choosePath('scan')}
               className={`rounded-md border px-3 py-3 text-left text-sm ${
                 path === 'scan'
@@ -355,15 +386,22 @@ export function OrderClient({ token }: { token: string }) {
                 Upload {siteConfig.moldPhotoCount} photos from different angles (max 10 MB
                 each).
               </p>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                disabled={uploading}
-                onChange={(e) => onUploadPhotos(e.target.files)}
-                className="mt-3 block w-full text-sm text-text-muted"
-              />
-              {uploading && <p className="mt-2 text-sm text-steel">Uploading…</p>}
+              <label className="mt-3 block text-sm text-text-muted">
+                Mold photos
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploading}
+                  onChange={(e) => onUploadPhotos(e.target.files)}
+                  className="mt-2 block w-full text-sm text-text-muted"
+                />
+              </label>
+              {uploading && (
+                <p role="status" className="mt-2 text-sm text-steel">
+                  Uploading…
+                </p>
+              )}
             </div>
           )}
 
@@ -396,15 +434,20 @@ export function OrderClient({ token }: { token: string }) {
                         We need a new scan. Upload a replacement below.
                       </p>
                     )}
-                    <input
-                      type="file"
-                      accept={acceptScan}
-                      disabled={uploading}
-                      onChange={(e) => onUploadScan(e.target.files)}
-                      className="block w-full text-sm text-text-muted"
-                    />
+                    <label className="block text-sm text-text-muted">
+                      Dentist 3D scan file
+                      <input
+                        type="file"
+                        accept={acceptScan}
+                        disabled={uploading}
+                        onChange={(e) => onUploadScan(e.target.files)}
+                        className="mt-2 block w-full text-sm text-text-muted"
+                      />
+                    </label>
                     {uploadProgress != null && (
-                      <p className="mt-2 text-sm text-steel">Uploading… {uploadProgress}%</p>
+                      <p role="status" className="mt-2 text-sm text-steel">
+                        Uploading… {uploadProgress}%
+                      </p>
                     )}
                     <p className="mt-3 text-xs text-text-muted">
                       Used only to make your piece. Delete on request.{' '}
@@ -449,7 +492,11 @@ export function OrderClient({ token }: { token: string }) {
         </ol>
       </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

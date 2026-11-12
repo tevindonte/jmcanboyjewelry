@@ -11,7 +11,7 @@ export default function CarePage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-16">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-16 outline-none">
         <p className="text-xs tracking-[0.2em] text-steel uppercase">{siteConfig.brandName}</p>
         <h1 className="mt-2 font-display text-3xl font-bold text-silver-bright">Care card</h1>
         <p className="mt-4 text-text-muted">Sterling silver grillz. Treat them like jewelry.</p>

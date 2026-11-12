@@ -1,11 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { BuilderControls } from './BuilderControls';
 import { ToothChart2D } from './ToothChart2D';
 import { SaveDesignPanel } from './SaveDesignPanel';
+import { DesignA11ySummary } from './DesignA11ySummary';
+import { useBuilderStore } from '@/store/builder-store';
+import { calculateEstimate } from '@/lib/pricing';
 import type { SiteMode } from '@/lib/site.config';
 import type { OrderTier } from '@/lib/pricing.config';
 
@@ -14,7 +17,10 @@ const GrillCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[240px] items-center justify-center text-sm text-text-muted">
+      <div
+        role="status"
+        className="flex h-full min-h-[240px] items-center justify-center text-sm text-text-muted"
+      >
         Loading 3D…
       </div>
     ),
@@ -39,9 +45,29 @@ export function BuilderShell({
     foundingRemaining > 0
       ? `${foundingRemaining} of ${foundingTotal} founding slots left`
       : '';
+  const arch = useBuilderStore((s) => s.arch);
+  const metal = useBuilderStore((s) => s.metal);
+  const teeth = useBuilderStore((s) => s.teeth);
+  const estimate = useMemo(
+    () =>
+      calculateEstimate({
+        arch,
+        teeth,
+        fulfillment: 'kit_mail',
+        tier,
+        appliedSpot,
+        metal,
+      }),
+    [arch, teeth, tier, appliedSpot, metal],
+  );
+  const goldQuote = metal === 'gold';
 
   return (
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
+      <DesignA11ySummary
+        estimateTotalCents={estimate.totalCents}
+        goldQuote={goldQuote}
+      />
       {/* Visual column: 2D chart + 3D */}
       <div className="min-w-0 space-y-4">
         <h1 className="font-display text-2xl font-bold text-silver-bright">Build yours</h1>

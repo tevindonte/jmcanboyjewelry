@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBuilderStore } from '@/store/builder-store';
 import type { SiteMode } from '@/lib/site.config';
@@ -34,6 +34,14 @@ export function SaveDesignPanel({
     referralLink?: string;
     alreadyJoined?: boolean;
   } | null>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    if (/email/i.test(error)) emailRef.current?.focus();
+    else errorRef.current?.focus();
+  }, [error]);
 
   async function saveDesign() {
     const res = await fetch('/api/designs', {
@@ -122,12 +130,26 @@ export function SaveDesignPanel({
               ? 'Email once. Next screen is checkout for the deposit.'
               : 'Email once. We save your design and put you on the waitlist.'}
           </p>
+          {error && (
+            <p
+              ref={errorRef}
+              id="save-design-error"
+              role="alert"
+              tabIndex={-1}
+              className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger outline-none"
+            >
+              {error}
+            </p>
+          )}
           <label className="block text-sm text-text-muted">
             Email
             <input
+              ref={emailRef}
               type="email"
               required
               value={email}
+              aria-invalid={Boolean(error && /email/i.test(error))}
+              aria-describedby={error ? 'save-design-error' : undefined}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-text outline-none focus:border-silver"
               autoComplete="email"
@@ -143,12 +165,12 @@ export function SaveDesignPanel({
             autoComplete="off"
             aria-hidden
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
           <button
             type="button"
             disabled={loading || !email}
+            aria-busy={loading}
             onClick={onPrimary}
-            className="w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg hover:bg-silver disabled:opacity-50"
+            className="min-h-11 w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg hover:bg-silver disabled:opacity-50"
           >
             {loading ? 'Working…' : primaryLabel}
           </button>

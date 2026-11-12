@@ -26,9 +26,14 @@ export default async function BuildPage({
   return (
     <>
       <SiteHeader />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         {notice && (
-          <p className="mx-auto max-w-6xl px-4 pt-6 text-sm text-steel">{notice}</p>
+          <p
+            role="status"
+            className="mx-auto max-w-6xl px-4 pt-6 text-sm text-steel"
+          >
+            {notice}
+          </p>
         )}
         <BuilderShell
           siteMode={settings.site_mode}

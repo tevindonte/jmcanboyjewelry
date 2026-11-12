@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { HeroGrill } from '@/components/HeroGrill';
+import { FaqAccordion } from '@/components/FaqAccordion';
 import { getFoundingSlotsRemaining, getSettings } from '@/lib/settings';
 import { siteConfig } from '@/lib/site.config';
 import { pricing } from '@/lib/pricing.config';
@@ -56,7 +57,7 @@ export default async function HomePage() {
   return (
     <>
       <SiteHeader />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         {/* Hero — brand + copy left (desktop), model right / below */}
         <section className="relative overflow-x-clip bg-gradient-to-br from-bg via-bg-soft to-bg lg:min-h-[100dvh]">
           <div
@@ -149,16 +150,11 @@ export default async function HomePage() {
           </section>
         )}
 
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="font-display text-3xl font-bold text-silver-bright">FAQ</h2>
-          <dl className="mt-8 divide-y divide-border">
-            {FAQ.map((item) => (
-              <div key={item.q} className="py-5">
-                <dt className="font-medium text-silver-bright">{item.q}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-text-muted">{item.a}</dd>
-              </div>
-            ))}
-          </dl>
+        <section className="mx-auto max-w-6xl px-4 py-16" aria-labelledby="faq-heading">
+          <h2 id="faq-heading" className="font-display text-3xl font-bold text-silver-bright">
+            FAQ
+          </h2>
+          <FaqAccordion items={FAQ} />
         </section>
       </main>
       <SiteFooter />

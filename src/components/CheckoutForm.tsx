@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { siteConfig } from '@/lib/site.config';
 import { pricing } from '@/lib/pricing.config';
@@ -29,6 +29,14 @@ export function CheckoutForm({
   const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<
+    'email' | 'name' | 'terms' | 'media' | 'form' | null
+  >(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const termsRef = useRef<HTMLInputElement>(null);
+  const mediaRef = useRef<HTMLInputElement>(null);
 
   const kitFeeCents =
     pricing.kitFee != null && fulfillmentChargesKitFee(fulfillment)
@@ -37,26 +45,46 @@ export function CheckoutForm({
   const depositCents =
     depositWithoutKitCents != null ? depositWithoutKitCents + kitFeeCents : null;
 
+  useEffect(() => {
+    if (!error || !errorField) return;
+    const target =
+      errorField === 'email'
+        ? emailRef.current
+        : errorField === 'name'
+          ? nameRef.current
+          : errorField === 'terms'
+            ? termsRef.current
+            : errorField === 'media'
+              ? mediaRef.current
+              : errorRef.current;
+    target?.focus();
+  }, [error, errorField]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!terms) {
-      setError('Accept the terms to continue.');
-      return;
-    }
-    if (foundingAvailable && !mediaConsent) {
-      setError('Founding price needs the filming/posting consent checkbox.');
+    if (!email.trim()) {
+      setError('Enter the email for your receipt and order link.');
+      setErrorField('email');
       return;
     }
     if (!name.trim()) {
       setError('Enter your name so we can email your order link.');
+      setErrorField('name');
       return;
     }
-    if (!email.trim()) {
-      setError('Enter the email for your receipt and order link.');
+    if (!terms) {
+      setError('Accept the terms to continue.');
+      setErrorField('terms');
+      return;
+    }
+    if (foundingAvailable && !mediaConsent) {
+      setError('Founding price needs the filming/posting consent checkbox.');
+      setErrorField('media');
       return;
     }
     setLoading(true);
     setError(null);
+    setErrorField(null);
     try {
       const res = await fetch('/api/checkout/deposit', {
         method: 'POST',
@@ -79,12 +107,13 @@ export function CheckoutForm({
       else throw new Error('Stripe did not return a checkout URL. Try again.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
+      setErrorField('form');
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" noValidate>
       {foundingAvailable && (
         <div className="rounded-md border border-border bg-bg-elevated p-3 text-sm text-text-muted">
           Founding client: {pricing.founding.discountPercent}% off. I&apos;m early in production,
@@ -97,12 +126,28 @@ export function CheckoutForm({
         <p className="rounded-md border border-border px-3 py-2 text-sm text-steel">{minimumHint}</p>
       )}
 
+      {error && (
+        <div
+          ref={errorRef}
+          id="checkout-error"
+          role="alert"
+          tabIndex={-1}
+          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger outline-none"
+        >
+          {error}
+        </div>
+      )}
+
       <label className="block text-sm text-text-muted">
         Email
         <input
+          ref={emailRef}
           type="email"
           required
+          autoComplete="email"
           value={email}
+          aria-invalid={errorField === 'email'}
+          aria-describedby={errorField === 'email' ? 'checkout-error' : undefined}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 outline-none focus:border-silver"
         />
@@ -111,8 +156,12 @@ export function CheckoutForm({
         Name
         <span className="text-xs text-steel"> (for your order emails)</span>
         <input
+          ref={nameRef}
           required
+          autoComplete="name"
           value={name}
+          aria-invalid={errorField === 'name'}
+          aria-describedby={errorField === 'name' ? 'checkout-error' : undefined}
           onChange={(e) => setName(e.target.value)}
           className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 outline-none focus:border-silver"
         />
@@ -124,9 +173,10 @@ export function CheckoutForm({
           Kit shipping address and mold/scan upload happen after you pay, on your order link.
         </p>
         <div className="mt-2 space-y-2">
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="radio"
+              name="fulfillment"
               checked={fulfillment === 'kit_mail'}
               onChange={() => setFulfillment('kit_mail')}
             />
@@ -135,17 +185,19 @@ export function CheckoutForm({
               <span className="text-xs text-steel">(+${pricing.kitFee} in deposit)</span>
             )}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="radio"
+              name="fulfillment"
               checked={fulfillment === 'local_impression'}
               onChange={() => setFulfillment('local_impression')}
             />
             Local impression ({siteConfig.location})
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="radio"
+              name="fulfillment"
               checked={fulfillment === 'dentist_scan'}
               onChange={() => setFulfillment('dentist_scan')}
             />
@@ -156,7 +208,11 @@ export function CheckoutForm({
       </fieldset>
 
       {depositCents != null && (
-        <p className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm">
+        <p
+          className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           Deposit due today:{' '}
           <span className="font-medium text-silver-bright">{formatCents(depositCents)}</span>
           {kitFeeCents > 0 && pricing.kitFee != null && (
@@ -171,10 +227,12 @@ export function CheckoutForm({
         </p>
       )}
 
-      <label className="flex items-start gap-2 text-sm text-text-muted">
+      <label className="flex min-h-11 items-start gap-2 text-sm text-text-muted">
         <input
+          ref={termsRef}
           type="checkbox"
           checked={terms}
+          aria-invalid={errorField === 'terms'}
           onChange={(e) => setTerms(e.target.checked)}
           className="mt-1"
           required
@@ -189,10 +247,12 @@ export function CheckoutForm({
       </label>
 
       {foundingAvailable && (
-        <label className="flex items-start gap-2 text-sm text-text-muted">
+        <label className="flex min-h-11 items-start gap-2 text-sm text-text-muted">
           <input
+            ref={mediaRef}
             type="checkbox"
             checked={mediaConsent}
+            aria-invalid={errorField === 'media'}
             onChange={(e) => setMediaConsent(e.target.checked)}
             className="mt-1"
             required
@@ -216,12 +276,11 @@ export function CheckoutForm({
         aria-hidden
       />
 
-      {error && <p className="text-sm text-danger">{error}</p>}
-
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg disabled:opacity-50"
+        aria-busy={loading}
+        className="min-h-11 w-full rounded-md bg-silver-bright px-4 py-3 text-sm font-semibold text-bg disabled:opacity-50"
       >
         {loading
           ? 'Redirecting to Stripe…'
@@ -229,6 +288,9 @@ export function CheckoutForm({
             ? `Pay deposit ${formatCents(depositCents)}`
             : 'Pay deposit'}
       </button>
+      <p className="text-xs text-steel">
+        Card payment opens on Stripe Checkout (hosted page with its own accessibility controls).
+      </p>
     </form>
   );
 }

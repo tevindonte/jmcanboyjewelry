@@ -76,7 +76,7 @@ export default async function CheckoutPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-lg px-4 py-16">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-lg px-4 py-16 outline-none">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Reserve your slot</h1>
         <p className="mt-3 text-text-muted">
           Pay the deposit here. Mold kit address, photos, or dentist scan come after on your order

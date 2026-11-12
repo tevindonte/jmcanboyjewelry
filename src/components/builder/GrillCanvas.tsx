@@ -452,29 +452,31 @@ export function GrillCanvas({
     <div
       ref={shellRef}
       className={`relative isolate bg-transparent ${className ?? ''}`}
-      role="img"
-      aria-label="3D grill style preview"
     >
       {showViewControls && !isHero && (
-        <div className="absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1.5">
+        <div
+          className="absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1.5"
+          role="toolbar"
+          aria-label="3D view controls"
+        >
           <button
             type="button"
             onClick={handleReset}
-            className="rounded border border-border/80 bg-bg/80 px-2 py-1 text-[11px] text-silver backdrop-blur-sm hover:border-silver/50"
+            className="min-h-11 min-w-11 rounded border border-border/80 bg-bg/80 px-3 py-2 text-xs text-silver backdrop-blur-sm hover:border-silver/50"
           >
             Reset view
           </button>
           <button
             type="button"
             onClick={handleFullscreen}
-            className="rounded border border-border/80 bg-bg/80 px-2 py-1 text-[11px] text-silver backdrop-blur-sm hover:border-silver/50"
+            className="min-h-11 min-w-11 rounded border border-border/80 bg-bg/80 px-3 py-2 text-xs text-silver backdrop-blur-sm hover:border-silver/50"
           >
             Fullscreen
           </button>
           <button
             type="button"
             onClick={handleScreenshot}
-            className="rounded border border-border/80 bg-bg/80 px-2 py-1 text-[11px] text-silver backdrop-blur-sm hover:border-silver/50"
+            className="min-h-11 min-w-11 rounded border border-border/80 bg-bg/80 px-3 py-2 text-xs text-silver backdrop-blur-sm hover:border-silver/50"
           >
             Screenshot
           </button>
@@ -498,6 +500,8 @@ export function GrillCanvas({
 
       <div
         className={`grill-canvas-mask-y h-full w-full bg-transparent${isHero ? ' grill-canvas-mask-y--hero' : ''}`}
+        role="img"
+        aria-label="3D grill style preview. Use the tooth chart to choose teeth and styles."
       >
         <div className="grill-canvas-mask-edge">
           <Canvas

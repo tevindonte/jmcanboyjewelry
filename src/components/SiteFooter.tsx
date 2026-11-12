@@ -34,7 +34,7 @@ export function SiteFooter() {
           </p>
           <p className="mt-1 text-xs text-steel-dim">{siteConfig.domain}</p>
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-text-muted">
+        <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-text-muted" aria-label="Footer">
           <Link href="/build" className="hover:text-silver">
             Build
           </Link>
@@ -50,6 +50,9 @@ export function SiteFooter() {
           <Link href="/privacy" className="hover:text-silver">
             Privacy
           </Link>
+          <Link href="/accessibility" className="hover:text-silver">
+            Accessibility
+          </Link>
           {socials.map((s) => (
             <a
               key={s.label}
@@ -59,9 +62,10 @@ export function SiteFooter() {
               className="hover:text-silver"
             >
               {s.label}
+              <span className="sr-only"> (opens in a new window)</span>
             </a>
           ))}
-        </div>
+        </nav>
       </div>
       <p className="border-t border-border px-4 py-4 text-center text-xs text-steel-dim">
         Cosmetic jewelry, not a dental or medical product.

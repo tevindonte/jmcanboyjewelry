@@ -26,7 +26,7 @@ export default function KitPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-16">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-16 outline-none">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Impression kit</h1>
         <p className="mt-3 text-text-muted">
           Mail kit for customers outside New Rochelle. Local clients can skip this and get an

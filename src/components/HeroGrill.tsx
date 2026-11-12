@@ -62,10 +62,15 @@ export function HeroGrill() {
   const current = HERO_CYCLE[index];
 
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      role="img"
+      aria-label={`3D style preview in ${current.label}`}
+    >
       <div
         className="h-full w-full transition-opacity duration-500 ease-out"
         style={{ opacity: visible ? 1 : 0.35 }}
+        aria-hidden
       >
         <GrillCanvas
           onFallback={onFallback}

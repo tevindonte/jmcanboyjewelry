@@ -25,8 +25,9 @@ services:
         sync: false
       - key: APPWRITE_API_KEY
         sync: false
+      # Console database ID (not the display name). Override in dashboard if different.
       - key: APPWRITE_DATABASE_ID
-        value: jmcanboy
+        value: 6ac643310002650db6f1
       - key: APPWRITE_BUCKET_MOLD_PHOTOS
         value: mold-photos
       - key: STRIPE_SECRET_KEY

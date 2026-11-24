@@ -18,14 +18,22 @@ async function main() {
   const projectId =
     process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? process.env.APPWRITE_PROJECT_ID ?? '';
   const apiKey = process.env.APPWRITE_API_KEY ?? '';
-  const databaseId = process.env.APPWRITE_DATABASE_ID ?? 'jmcanboy';
+  // Must be the Console database *ID* (e.g. 6ac643...), not the display name.
+  const databaseId = process.env.APPWRITE_DATABASE_ID ?? '';
 
   const missing: string[] = [];
   if (!endpoint) missing.push('APPWRITE_ENDPOINT / NEXT_PUBLIC_APPWRITE_ENDPOINT');
   if (!projectId) missing.push('APPWRITE_PROJECT_ID / NEXT_PUBLIC_APPWRITE_PROJECT_ID');
   if (!apiKey) missing.push('APPWRITE_API_KEY');
+  if (!databaseId) missing.push('APPWRITE_DATABASE_ID');
   if (missing.length) {
     console.error('Missing env:', missing.join(', '));
+    process.exit(1);
+  }
+  if (databaseId === 'jmcanboy') {
+    console.error(
+      'APPWRITE_DATABASE_ID is set to "jmcanboy" (the name). Use the Console database ID instead (Databases → open DB → copy ID).',
+    );
     process.exit(1);
   }
 
@@ -40,21 +48,32 @@ async function main() {
   };
 
   try {
-    await tables.updateRow({
-      databaseId,
-      tableId: 'settings',
-      rowId,
-      data: payload,
-    });
-    console.log('keepalive updated', rowId);
-  } catch {
-    await tables.createRow({
-      databaseId,
-      tableId: 'settings',
-      rowId: rowId || ID.unique(),
-      data: payload,
-    });
-    console.log('keepalive created', rowId);
+    try {
+      await tables.updateRow({
+        databaseId,
+        tableId: 'settings',
+        rowId,
+        data: payload,
+      });
+      console.log('keepalive updated', rowId);
+    } catch (updateErr) {
+      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+      if (/could not be found|not found/i.test(msg) && /database/i.test(msg)) {
+        throw new Error(
+          `${msg} — check APPWRITE_DATABASE_ID is the Console ID (not the name), and PROJECT_ID matches that project.`,
+        );
+      }
+      await tables.createRow({
+        databaseId,
+        tableId: 'settings',
+        rowId: rowId || ID.unique(),
+        data: payload,
+      });
+      console.log('keepalive created', rowId);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(msg);
   }
 }
 

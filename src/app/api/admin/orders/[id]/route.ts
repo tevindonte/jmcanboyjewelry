@@ -24,6 +24,7 @@ import {
   Query,
   APPWRITE,
 } from '@/lib/db';
+import { parseCustomJson } from '@/lib/custom-request';
 
 export async function GET(
   _request: Request,
@@ -107,6 +108,7 @@ export async function GET(
           teeth,
           email: designDoc.email,
           metal: normalizeMetalId(designDoc.metal ?? order.metal),
+          custom: parseCustomJson(designDoc.custom_json),
         }
       : null,
     events: events.map((e) => ({

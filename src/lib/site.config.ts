@@ -1,7 +1,8 @@
 export const siteConfig = {
   brandName: 'JMCANBOY Jewelry',
   domain: 'jmcanboyjewelry.com',
-  tagline: 'Custom grillz. Silver now. Gold on request.',
+  tagline:
+    'Custom grillz. Silver ready to order. Gold, platinum, and plating on request.',
   location: 'New Rochelle, NY',
   termsVersion: '2026-01-draft',
   /** Spots a confirmed referral moves you up. */

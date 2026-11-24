@@ -18,7 +18,8 @@ const GrillCanvas = dynamic(
 
 const HERO_CYCLE: { id: MetalId; label: string }[] = [
   { id: 'silver', label: 'Silver' },
-  { id: 'vermeil', label: 'Gold' },
+  { id: 'gold', label: 'Gold' },
+  { id: 'platinum', label: 'Platinum' },
 ];
 
 const CYCLE_MS = 4200;

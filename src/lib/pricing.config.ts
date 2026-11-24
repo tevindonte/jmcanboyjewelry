@@ -56,24 +56,32 @@ export const pricing = {
     },
   },
   /**
-   * Customer metal choice. Silver is the only instant-checkout metal at launch.
-   * Vermeil = silver base + plating fee. Solid gold is quote-only (no Stripe).
+   * Customer metal choice.
+   * Silver: instant checkout. Gold / platinum / gold plating: quote on request.
+   * Not dental gold, not permanent dental work. Stones (diamond, CZ, moissanite, etc.) on request.
    */
   metals: {
     silver: {
-      label: 'Silver (sterling)',
+      label: 'Sterling silver',
       shortLabel: 'Silver',
     },
-    vermeil: {
-      label: 'Gold vermeil',
-      shortLabel: 'Gold',
-      /** PLACEHOLDER — gold plating fee on top of silver unit price. */
-      platingFeePerToothUsd: 15,
-    },
     gold: {
-      label: 'Solid gold (10k/14k)',
-      shortLabel: 'Solid gold',
+      label: 'Gold',
+      shortLabel: 'Gold',
       quoteOnly: true as const,
+      hint: 'Jewelry gold · quote · not dental / not permanent',
+    },
+    platinum: {
+      label: 'Platinum',
+      shortLabel: 'Platinum',
+      quoteOnly: true as const,
+      hint: 'Quoted per order',
+    },
+    plating: {
+      label: 'Gold plating',
+      shortLabel: 'Plating',
+      quoteOnly: true as const,
+      hint: 'Upon request',
     },
   },
 } as const;
@@ -90,9 +98,21 @@ export const DWT_IN_GRAMS = 1.55517;
 export const METAL_IDS = Object.keys(pricing.metals) as MetalId[];
 
 export function isMetalId(value: unknown): value is MetalId {
-  return value === 'silver' || value === 'vermeil' || value === 'gold';
+  return (
+    value === 'silver' ||
+    value === 'gold' ||
+    value === 'platinum' ||
+    value === 'plating'
+  );
 }
 
+/** Map legacy IDs (e.g. vermeil) onto the current catalog. */
 export function normalizeMetalId(value: unknown): MetalId {
+  if (value === 'vermeil') return 'plating';
   return isMetalId(value) ? value : 'silver';
+}
+
+export function isQuoteOnlyMetal(metalId: MetalId): boolean {
+  const entry = pricing.metals[metalId];
+  return Boolean(entry && 'quoteOnly' in entry && entry.quoteOnly);
 }

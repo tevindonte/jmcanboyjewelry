@@ -2,7 +2,7 @@
 
 import { useBuilderStore, type GrillPreset } from '@/store/builder-store';
 import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
-import { pricing } from '@/lib/pricing.config';
+import { pricing, isQuoteOnlyMetal } from '@/lib/pricing.config';
 import {
   calculateEstimate,
   formatCents,
@@ -14,11 +14,13 @@ import {
   type ToothId,
 } from '@/lib/pricing';
 import type { OrderTier } from '@/lib/pricing.config';
+import { CustomRequestPanel } from './CustomRequestPanel';
 
 const METAL_CARDS: { id: MetalId; label: string; hint: string }[] = [
-  { id: 'silver', label: 'Silver', hint: 'Sterling · shop now' },
-  { id: 'vermeil', label: 'Gold vermeil', hint: 'Silver + gold plate' },
-  { id: 'gold', label: 'Solid gold', hint: '10k / 14k · quote' },
+  { id: 'silver', label: 'Silver', hint: 'Sterling · order now' },
+  { id: 'gold', label: 'Gold', hint: 'Jewelry gold · quote' },
+  { id: 'platinum', label: 'Platinum', hint: 'Quoted per order' },
+  { id: 'plating', label: 'Gold plating', hint: 'Upon request' },
 ];
 
 const ARCHES: { id: ArchChoice; label: string }[] = [
@@ -101,6 +103,7 @@ export function BuilderControls({
   const teeth = useBuilderStore((s) => s.teeth);
   const selected = useBuilderStore((s) => s.selected);
   const pendingStyle = useBuilderStore((s) => s.pendingStyle);
+  const customRequest = useBuilderStore((s) => s.customRequest);
   const setArch = useBuilderStore((s) => s.setArch);
   const setMetal = useBuilderStore((s) => s.setMetal);
   const chooseStyle = useBuilderStore((s) => s.chooseStyle);
@@ -121,7 +124,7 @@ export function BuilderControls({
   const activeStyle = activeId ? (teeth[activeId] ?? 'none') : null;
   const pricedCount = estimate.selectedToothCount;
   const empty = pricedCount === 0;
-  const goldQuote = metal === 'gold';
+  const quoteOnly = customRequest || isQuoteOnlyMetal(metal);
 
   const moreTeeth = teethToPassMinimum(estimate);
   const minLabel = formatUsd(pricing.minimumOrder);
@@ -180,7 +183,7 @@ export function BuilderControls({
         <legend className="mb-2 text-xs font-medium tracking-wide text-text-muted uppercase">
           Metal
         </legend>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Metal">
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Metal">
           {METAL_CARDS.map((m) => {
             const active = metal === m.id;
             return (
@@ -191,7 +194,7 @@ export function BuilderControls({
                 aria-checked={active}
                 onClick={() => setMetal(m.id)}
                 className={[
-                  'flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2.5 text-left transition-colors',
+                  'flex min-h-11 flex-col items-start gap-0.5 rounded-md border px-2.5 py-2.5 text-left transition-colors',
                   active
                     ? 'border-silver bg-silver/10 text-silver-bright'
                     : 'border-border text-silver hover:border-silver/60 hover:bg-bg-elevated',
@@ -203,6 +206,10 @@ export function BuilderControls({
             );
           })}
         </div>
+        <p className="mt-2 text-xs text-steel">
+          Removable jewelry only — not dental gold, not permanent. Diamonds, CZ, moissanite,
+          and other stones available on request.
+        </p>
       </fieldset>
 
       {/* Per-tooth style panel */}
@@ -243,7 +250,7 @@ export function BuilderControls({
                 <span className="text-sm font-medium">{s.label}</span>
                 <span className="text-[10px] text-steel">{s.hint}</span>
                 <span className="text-xs text-silver-bright">
-                  {goldQuote ? (
+                  {quoteOnly ? (
                     'Quote'
                   ) : (
                     <>
@@ -262,6 +269,8 @@ export function BuilderControls({
           </p>
         )}
       </section>
+
+      <CustomRequestPanel />
 
       {/* Presets */}
       <section>
@@ -319,7 +328,7 @@ export function BuilderControls({
         aria-live="polite"
         aria-atomic="true"
       >
-        {!goldQuote && (
+        {!quoteOnly && (
           <div className="mb-3 flex flex-wrap gap-3 text-xs text-steel">
             <span>
               Plain {formatUsd(unitPriceForMetalUsd('plain', appliedSpot, metal))}
@@ -337,11 +346,13 @@ export function BuilderControls({
           Estimate
         </p>
 
-        {goldQuote ? (
+        {quoteOnly ? (
           <>
             <p className="font-display text-xl text-silver-bright">Quoted per order</p>
             <p className="mt-2 text-sm leading-relaxed text-steel">
-              Gold is quoted per order. Save your design and we&apos;ll send a price.
+              {customRequest
+                ? 'Custom request — save your notes and we will email a price.'
+                : `${pricing.metals[metal].shortLabel} is quoted per order. Save your design and we will email a price. Stones (diamond, CZ, moissanite, etc.) on request.`}
             </p>
           </>
         ) : empty ? (
@@ -366,14 +377,6 @@ export function BuilderControls({
                   {formatCents(estimate.regularToothSubtotalCents)}
                 </dd>
               </div>
-              {metal === 'vermeil' &&
-                estimate.platingFeeCents != null &&
-                estimate.platingFeeCents > 0 && (
-                  <div className="flex justify-between gap-4 text-xs">
-                    <dt className="text-steel-dim">Includes vermeil plating</dt>
-                    <dd className="text-steel">{formatCents(estimate.platingFeeCents)}</dd>
-                  </div>
-                )}
               {estimate.foundingDiscountCents != null &&
                 estimate.foundingDiscountCents > 0 && (
                   <div className="flex justify-between gap-4">

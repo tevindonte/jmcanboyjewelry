@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { adminCreateOrderSchema } from '@/lib/validations';
 import { calculateEstimate } from '@/lib/pricing';
-import { normalizeMetalId } from '@/lib/pricing.config';
+import { normalizeMetalId, isQuoteOnlyMetal } from '@/lib/pricing.config';
 import { getSettings, getFoundingSlotsRemaining } from '@/lib/settings';
 import { generateAccessToken } from '@/lib/referral';
 import { siteConfig } from '@/lib/site.config';
@@ -30,9 +30,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (metal === 'gold' && data.priceOverrideCents == null) {
+  if (isQuoteOnlyMetal(metal) && data.priceOverrideCents == null) {
     return NextResponse.json(
-      { error: 'Solid gold orders need a manual quote (price_override_cents)' },
+      {
+        error:
+          'Quote-only metals (gold, platinum, plating) need a manual quote (price_override_cents)',
+      },
       { status: 400 },
     );
   }

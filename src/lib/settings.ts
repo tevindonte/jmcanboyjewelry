@@ -18,8 +18,8 @@ export type AppSettings = {
 };
 
 const defaults: AppSettings = {
-  site_mode: 'waitlist',
-  site_public: false,
+  site_mode: 'preorder',
+  site_public: true,
   founding_slots_total: pricing.founding.slots,
   applied_spot: pricing.metal.spotReference,
 };
@@ -27,8 +27,11 @@ const defaults: AppSettings = {
 export async function getSettings(): Promise<AppSettings> {
   try {
     const map = await getAllSettings();
+    // Waitlist mode retired — open for deposits. "closed" still blocks public checkout.
+    const rawMode = (map.site_mode as SiteMode) ?? defaults.site_mode;
+    const site_mode: SiteMode = rawMode === 'waitlist' ? 'preorder' : rawMode;
     return {
-      site_mode: (map.site_mode as SiteMode) ?? defaults.site_mode,
+      site_mode,
       site_public:
         typeof map.site_public === 'boolean' ? map.site_public : defaults.site_public,
       founding_slots_total:

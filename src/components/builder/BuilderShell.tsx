@@ -60,13 +60,11 @@ export function BuilderShell({
       }),
     [arch, teeth, tier, appliedSpot, metal],
   );
-  const goldQuote = metal === 'gold';
-
   return (
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
       <DesignA11ySummary
         estimateTotalCents={estimate.totalCents}
-        goldQuote={goldQuote}
+        quoteOnly={estimate.quoteOnly}
       />
       {/* Visual column: 2D chart + 3D */}
       <div className="min-w-0 space-y-4">

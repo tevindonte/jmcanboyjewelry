@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pricing } from './pricing.config';
+import { pricing, normalizeMetalId } from './pricing.config';
 import {
   calculateEstimate,
   teethToPassMinimum,
@@ -63,9 +63,9 @@ describe('calculateEstimate', () => {
     expect(teethToPassMinimum(result)).toBe(0);
   });
 
-  it('vermeil Top 6 plain = silver price + plating fee per tooth', () => {
-    const plate = pricing.metals.vermeil.platingFeePerToothUsd;
-    expect(unitPriceForMetalUsd('plain', spot, 'vermeil')).toBe(50 + plate);
+  it('legacy vermeil maps to plating and is quote-only', () => {
+    expect(normalizeMetalId('vermeil')).toBe('plating');
+    expect(unitPriceForMetalUsd('plain', spot, 'plating')).toBeNull();
 
     const result = calculateEstimate({
       arch: 'top',
@@ -73,18 +73,27 @@ describe('calculateEstimate', () => {
       fulfillment: 'local_impression',
       tier: 'founding',
       appliedSpot: spot,
-      metal: 'vermeil',
+      metal: 'plating',
     });
 
-    // 6 × ($50 + $15) = $390 − 15% = $331.50
-    const regular = 6 * (50 + plate) * 100;
-    expect(result.priced).toBe(true);
-    expect(result.quoteOnly).toBe(false);
-    expect(result.metalId).toBe('vermeil');
-    expect(result.platingFeeCents).toBe(6 * plate * 100);
-    expect(result.regularToothSubtotalCents).toBe(regular);
-    expect(result.foundingDiscountCents).toBe(Math.round(regular * 0.15));
-    expect(result.totalCents).toBe(regular - Math.round(regular * 0.15));
+    expect(result.priced).toBe(false);
+    expect(result.quoteOnly).toBe(true);
+    expect(result.metalId).toBe('plating');
+    expect(result.totalCents).toBeNull();
+  });
+
+  it('platinum is quote-only', () => {
+    const result = calculateEstimate({
+      arch: 'top',
+      teeth: top6Plain,
+      fulfillment: 'local_impression',
+      tier: 'standard',
+      appliedSpot: spot,
+      metal: 'platinum',
+    });
+    expect(result.priced).toBe(false);
+    expect(result.quoteOnly).toBe(true);
+    expect(result.metalId).toBe('platinum');
   });
 
   it('gold is quote-only and never priced for Stripe', () => {

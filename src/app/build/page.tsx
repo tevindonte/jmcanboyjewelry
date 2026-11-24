@@ -6,9 +6,8 @@ import { getFoundingSlotsRemaining, getSettings } from '@/lib/settings';
 export const metadata = { title: 'Build' };
 
 const NOTICES: Record<string, string> = {
-  waitlist:
-    'Checkout is closed right now. Join the waitlist below — we will email you when deposits open.',
-  'pick-design': 'Start here: pick your teeth, then reserve or join with your email.',
+  waitlist: 'We are accepting orders. Pick your teeth and reserve with your email.',
+  'pick-design': 'Start here: pick your teeth, then reserve or request a quote with your email.',
   'missing-design': 'That design link was not found. Build again and save from this site.',
   'pick-teeth': 'Pick at least one tooth to continue.',
 };

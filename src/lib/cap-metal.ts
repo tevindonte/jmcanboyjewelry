@@ -12,19 +12,24 @@ export const CAP_METAL_LOOK: Record<
     roughness: 0.14,
     envMapIntensity: 1.55,
   },
-  vermeil: {
-    // Warm yellow gold — keep env a hair lower so albedo reads gold, not chrome
-    color: '#E6B450',
-    hoverColor: '#F0C56A',
-    roughness: 0.17,
-    envMapIntensity: 1.15,
-  },
   gold: {
-    // Deeper solid gold
     color: '#DDA83E',
     hoverColor: '#E8B84A',
     roughness: 0.2,
     envMapIntensity: 1.05,
+  },
+  platinum: {
+    color: '#C5C8CE',
+    hoverColor: '#D8DBE0',
+    roughness: 0.12,
+    envMapIntensity: 1.45,
+  },
+  plating: {
+    // Warm yellow gold plate look
+    color: '#E6B450',
+    hoverColor: '#F0C56A',
+    roughness: 0.17,
+    envMapIntensity: 1.15,
   },
 };
 

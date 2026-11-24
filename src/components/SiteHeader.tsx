@@ -21,8 +21,8 @@ export function SiteHeader() {
           <Link href="/kit" className="hover:text-silver-bright transition-colors">
             Kit
           </Link>
-          <Link href="/waitlist" className="hover:text-silver-bright transition-colors">
-            Waitlist
+          <Link href="/care" className="hover:text-silver-bright transition-colors">
+            Care
           </Link>
         </nav>
       </div>

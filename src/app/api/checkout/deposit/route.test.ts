@@ -119,9 +119,9 @@ describe('POST /api/checkout/deposit', () => {
     });
   });
 
-  it('does not call Stripe when site is not in preorder (order unpaid / no slot side effects)', async () => {
+  it('does not call Stripe when site is closed', async () => {
     mocks.getSettings.mockResolvedValue({
-      site_mode: 'waitlist',
+      site_mode: 'closed',
       site_public: false,
       founding_slots_total: 5,
       applied_spot: pricing.metal.spotReference,
@@ -144,3 +144,4 @@ describe('POST /api/checkout/deposit', () => {
     expect(mocks.createDoc).not.toHaveBeenCalled();
   });
 });
+

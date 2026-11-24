@@ -100,9 +100,9 @@ export function AdminDashboard({
             onChange={(e) => saveSettings({ site_mode: e.target.value as SiteMode })}
             className="mt-2 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
           >
-            <option value="waitlist">waitlist</option>
-            <option value="preorder">preorder</option>
+            <option value="preorder">accepting orders</option>
             <option value="closed">closed</option>
+            <option value="waitlist">waitlist (legacy → accepting)</option>
           </select>
         </div>
         <div>

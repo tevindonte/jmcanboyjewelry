@@ -4,9 +4,15 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { getSettings, getFoundingSlotsRemaining, resolvePublicTier } from '@/lib/settings';
 import { calculateEstimate, formatCents, type TeethMap } from '@/lib/pricing';
-import { normalizeMetalId, pricing, type ArchChoice } from '@/lib/pricing.config';
+import {
+  normalizeMetalId,
+  isQuoteOnlyMetal,
+  pricing,
+  type ArchChoice,
+} from '@/lib/pricing.config';
 import { DesignReadonly } from '@/components/DesignReadonly';
 import { getDoc, col } from '@/lib/db';
+import { parseCustomJson } from '@/lib/custom-request';
 
 export const metadata = { title: 'Design' };
 
@@ -33,10 +39,12 @@ export default async function DesignSharePage({
     metal,
   });
 
-  const goldQuote = metal === 'gold';
-  const cta =
-    goldQuote || settings.site_mode !== 'preorder'
-      ? { href: `/build`, label: 'Build yours & join waitlist' }
+  const custom = parseCustomJson(design.custom_json);
+  const quoteOnly = Boolean(custom?.enabled) || isQuoteOnlyMetal(metal);
+  const cta = quoteOnly
+    ? { href: `/build`, label: 'Build yours & request a quote' }
+    : settings.site_mode === 'closed'
+      ? { href: `/build`, label: 'Build yours' }
       : {
           href: `/checkout?design=${design.$id}&email=${encodeURIComponent(String(design.email || ''))}`,
           label: 'Reserve this design',
@@ -67,16 +75,36 @@ export default async function DesignSharePage({
           ) : (
             'Price on request'
           )}
-          {founding.remaining > 0 && !goldQuote && (
+          {founding.remaining > 0 && !quoteOnly && (
             <span className="ml-2 text-xs text-steel">
               ({founding.remaining} of {founding.total} founding left)
             </span>
           )}
         </p>
-        {goldQuote && (
+        {quoteOnly && (
           <p className="mt-2 text-sm text-steel">
-            Gold is quoted per order. Save your design and we&apos;ll send a price.
+            {custom?.enabled
+              ? 'Custom request — quoted per order.'
+              : `${pricing.metals[metal].shortLabel} is quoted per order — not dental gold, not permanent. Stones on request.`}{' '}
+            Save from the builder and we will email a price.
           </p>
+        )}
+        {custom?.enabled && custom.notes && (
+          <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">
+            <p className="text-xs tracking-wide text-steel uppercase">Custom notes</p>
+            <p className="mt-2 whitespace-pre-wrap text-text-muted">{custom.notes}</p>
+            {custom.referenceUrl && (
+              <a
+                href={custom.referenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block break-all text-silver underline"
+              >
+                {custom.referenceUrl}
+                <span className="sr-only"> (opens in a new window)</span>
+              </a>
+            )}
+          </div>
         )}
         <DesignReadonly arch={design.arch as ArchChoice} teeth={teeth} />
         <p className="mt-4 text-xs text-steel">

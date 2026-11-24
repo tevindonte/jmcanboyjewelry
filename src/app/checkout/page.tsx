@@ -10,7 +10,13 @@ import {
   teethToPassMinimum,
   type TeethMap,
 } from '@/lib/pricing';
-import { normalizeMetalId, pricing, type ArchChoice } from '@/lib/pricing.config';
+import {
+  normalizeMetalId,
+  isQuoteOnlyMetal,
+  pricing,
+  type ArchChoice,
+} from '@/lib/pricing.config';
+import { parseCustomJson } from '@/lib/custom-request';
 import { redirect } from 'next/navigation';
 
 export const metadata = { title: 'Checkout' };
@@ -24,7 +30,7 @@ export default async function CheckoutPage({
   const settings = await getSettings();
   const founding = await getFoundingSlotsRemaining();
 
-  if (settings.site_mode !== 'preorder') {
+  if (settings.site_mode === 'closed') {
     redirect(
       sp.design
         ? `/build?notice=waitlist&design=${encodeURIComponent(sp.design)}`
@@ -57,8 +63,9 @@ export default async function CheckoutPage({
     redirect('/build?notice=pick-teeth');
   }
 
-  if (metal === 'gold') {
-    redirect(`/waitlist?design=${encodeURIComponent(sp.design)}`);
+  const custom = parseCustomJson(design.custom_json);
+  if (custom?.enabled || isQuoteOnlyMetal(metal) || estimate.quoteOnly) {
+    redirect('/build?notice=pick-design');
   }
 
   const moreTeeth = teethToPassMinimum(estimate);

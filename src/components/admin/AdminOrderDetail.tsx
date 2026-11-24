@@ -22,7 +22,12 @@ type Detail = {
     access_token: string;
     media_consent_at: string | null;
   };
-  design: { arch: string; teeth: Record<string, string>; metal?: string } | null;
+  design: {
+    arch: string;
+    teeth: Record<string, string>;
+    metal?: string;
+    custom?: { enabled: boolean; notes: string; referenceUrl: string } | null;
+  } | null;
   events: { type: string; note: string | null; created_at: string }[];
   photos: {
     id: string;
@@ -181,7 +186,26 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
       <p className="text-sm text-text-muted">
         {order.email} · {order.phone ?? 'no phone'} · tier {order.tier} · metal{' '}
         {order.metal || data.design?.metal || 'silver'}
+        {data.design?.custom?.enabled ? ' · custom request' : ''}
       </p>
+      {data.design?.custom?.enabled && (
+        <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">
+          <p className="text-xs tracking-wide text-steel uppercase">Custom request</p>
+          <p className="mt-2 whitespace-pre-wrap text-text-muted">
+            {data.design.custom.notes || '(no notes)'}
+          </p>
+          {data.design.custom.referenceUrl && (
+            <a
+              href={data.design.custom.referenceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block break-all text-silver underline"
+            >
+              {data.design.custom.referenceUrl}
+            </a>
+          )}
+        </div>
+      )}
       <p className="mt-1 text-xs text-steel">
         Media consent:{' '}
         {order.media_consent_at

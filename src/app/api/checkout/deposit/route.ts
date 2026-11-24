@@ -6,8 +6,9 @@ import { getStripe } from '@/lib/stripe';
 import { generateAccessToken } from '@/lib/referral';
 import { siteConfig } from '@/lib/site.config';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
-import { normalizeMetalId, type ArchChoice } from '@/lib/pricing.config';
+import { normalizeMetalId, isQuoteOnlyMetal, type ArchChoice } from '@/lib/pricing.config';
 import { createDoc, getDoc, updateDoc, col } from '@/lib/db';
+import { parseCustomJson } from '@/lib/custom-request';
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
@@ -17,9 +18,9 @@ export async function POST(request: Request) {
   }
 
   const settings = await getSettings();
-  if (settings.site_mode !== 'preorder') {
+  if (settings.site_mode === 'closed') {
     return NextResponse.json(
-      { error: 'Pre-orders are not open. Join the waitlist instead.' },
+      { error: 'Orders are closed right now. Email us to request a slot.' },
       { status: 400 },
     );
   }
@@ -60,11 +61,21 @@ export async function POST(request: Request) {
   }
 
   const metal = normalizeMetalId(design.metal);
-  if (metal === 'gold') {
+  const custom = parseCustomJson(design.custom_json);
+  if (custom?.enabled) {
     return NextResponse.json(
       {
         error:
-          'Solid gold is quoted per order and cannot check out online. Save your design and join the waitlist.',
+          'Custom requests are quote-only and cannot check out online. We will email a price.',
+      },
+      { status: 400 },
+    );
+  }
+  if (isQuoteOnlyMetal(metal)) {
+    return NextResponse.json(
+      {
+        error:
+          'This metal is quoted per order and cannot check out online. Save your design and we will email a price.',
       },
       { status: 400 },
     );
@@ -90,8 +101,7 @@ export async function POST(request: Request) {
   if (!estimate.priced || estimate.depositCents == null || estimate.totalCents == null) {
     return NextResponse.json(
       {
-        error:
-          'Pricing is not available for this design yet. Email us or join the waitlist.',
+        error: 'Pricing is not available for this design yet. Email us for a quote.',
       },
       { status: 400 },
     );

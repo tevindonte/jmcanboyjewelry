@@ -2,18 +2,50 @@ import { z } from 'zod';
 
 export const toothStyleSchema = z.enum(['none', 'plain', 'window', 'deepcut']);
 export const archSchema = z.enum(['top', 'bottom', 'both']);
-export const metalSchema = z.enum(['silver', 'vermeil', 'gold']);
+export const metalSchema = z.enum(['silver', 'gold', 'platinum', 'plating', 'vermeil']);
 export const toothIdSchema = z.string().regex(/^[UL][1-8]$/);
 
 export const teethMapSchema = z.record(toothIdSchema, toothStyleSchema);
 
-export const saveDesignSchema = z.object({
-  email: z.string().email().max(254),
-  arch: archSchema,
-  teeth: teethMapSchema,
-  metal: metalSchema.default('silver'),
-  honeypot: z.string().max(0).optional().or(z.literal('')),
-});
+export const saveDesignSchema = z
+  .object({
+    email: z.string().email().max(254),
+    arch: archSchema,
+    teeth: teethMapSchema,
+    metal: metalSchema.default('silver'),
+    /** Customer asked for something outside listed styles / metals. */
+    customRequest: z.boolean().optional().default(false),
+    customNotes: z.string().max(2000).optional().default(''),
+    customReferenceUrl: z
+      .string()
+      .max(500)
+      .optional()
+      .default('')
+      .refine((v) => !v || /^https?:\/\//i.test(v), {
+        message: 'Reference must be a http(s) link',
+      }),
+    honeypot: z.string().max(0).optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    const toothCount = Object.values(data.teeth).filter(
+      (s) => s && s !== 'none',
+    ).length;
+    if (data.customRequest) {
+      if (!data.customNotes.trim() || data.customNotes.trim().length < 8) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Describe what you want (at least a short sentence).',
+          path: ['customNotes'],
+        });
+      }
+    } else if (toothCount === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Select at least one tooth before saving.',
+        path: ['teeth'],
+      });
+    }
+  });
 
 export const waitlistSchema = z.object({
   email: z.string().email().max(254),

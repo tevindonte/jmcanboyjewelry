@@ -74,10 +74,10 @@ export default function KitPage() {
 
         <p className="mt-10 text-sm text-text-muted">
           After your deposit is paid, upload mold photos from your{' '}
-          <Link href="/waitlist" className="text-silver underline">
+          <Link href="/build" className="text-silver underline">
             order link
           </Link>{' '}
-          (emailed to you).
+          (emailed after your deposit).
         </p>
       </main>
       <SiteFooter />

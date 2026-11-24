@@ -2,6 +2,7 @@ import {
   pricing,
   DWT_IN_GRAMS,
   normalizeMetalId,
+  isQuoteOnlyMetal,
   type ArchChoice,
   type MetalId,
   type OrderTier,
@@ -202,18 +203,18 @@ export function pendingAdjustments(candidateSpot: number): Record<
   return out;
 }
 
-function platingFeePerToothUsd(metalId: MetalId): number {
-  if (metalId !== 'vermeil') return 0;
-  return pricing.metals.vermeil.platingFeePerToothUsd;
+function platingFeePerToothUsd(_metalId: MetalId): number {
+  // Gold plating is quote-only; no automatic per-tooth fee at checkout.
+  return 0;
 }
 
-/** Live unit price including vermeil plating when applicable. */
+/** Live unit price for checkout metals (silver). Quote-only metals return null. */
 export function unitPriceForMetalUsd(
   style: 'plain' | 'window' | 'deepcut',
   appliedSpot: number,
   metalId: MetalId = 'silver',
 ): number | null {
-  if (metalId === 'gold') return null;
+  if (isQuoteOnlyMetal(metalId)) return null;
   const base = unitPriceUsd(style, appliedSpot);
   if (base === null) return null;
   return roundTo(base + platingFeePerToothUsd(metalId), pricing.metal.passThrough.roundToUsd);
@@ -227,7 +228,7 @@ function unpricedResult(
   },
 ): EstimateResult {
   const metalId = partial.metalId ?? 'silver';
-  const quoteOnly = metalId === 'gold';
+  const quoteOnly = isQuoteOnlyMetal(metalId);
   return {
     priced: false,
     currency: pricing.currency,
@@ -300,8 +301,11 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
   const metalId = normalizeMetalId(input.metal);
   const plateUsd = platingFeePerToothUsd(metalId);
 
-  // Friend / gold manual override
-  if (input.priceOverrideCents != null && (tier === 'friend' || metalId === 'gold')) {
+  // Friend / quote-metal manual override
+  if (
+    input.priceOverrideCents != null &&
+    (tier === 'friend' || isQuoteOnlyMetal(metalId))
+  ) {
     const totalCents = input.priceOverrideCents;
     const depositCents = Math.round((totalCents * pricing.depositPercent) / 100);
     const snapshot: PriceSnapshot = {
@@ -343,8 +347,8 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
     };
   }
 
-  // Solid gold with no override — never Stripe-priced at launch
-  if (metalId === 'gold') {
+  // Quote-only metals with no override — never Stripe-priced online
+  if (isQuoteOnlyMetal(metalId)) {
     const allowed = new Set(toothIdsForArch(input.arch));
     let selectedToothCount = 0;
     for (const [id, style] of Object.entries(input.teeth) as [ToothId, ToothStyle][]) {

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBuilderStore } from '@/store/builder-store';
+import { isQuoteOnlyMetal, pricing } from '@/lib/pricing.config';
+import { siteConfig } from '@/lib/site.config';
 import type { SiteMode } from '@/lib/site.config';
 
 function selectedToothCount(teeth: Record<string, string>) {
@@ -24,18 +26,22 @@ export function SaveDesignPanel({
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
   const teeth = useBuilderStore((s) => s.teeth);
+  const customRequest = useBuilderStore((s) => s.customRequest);
+  const customNotes = useBuilderStore((s) => s.customNotes);
+  const customReferenceUrl = useBuilderStore((s) => s.customReferenceUrl);
   const [email, setEmail] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{
     designUrl: string;
-    waitlistPosition?: number;
-    referralLink?: string;
-    alreadyJoined?: boolean;
+    quoteOnly?: boolean;
   } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  const quoteOnly = customRequest || isQuoteOnlyMetal(metal);
+  const accepting = siteMode === 'preorder' || siteMode === 'waitlist';
 
   useEffect(() => {
     if (!error) return;
@@ -47,59 +53,45 @@ export function SaveDesignPanel({
     const res = await fetch('/api/designs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, arch, teeth, metal, honeypot }),
+      body: JSON.stringify({
+        email,
+        arch,
+        teeth,
+        metal,
+        customRequest,
+        customNotes,
+        customReferenceUrl,
+        honeypot,
+      }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? 'Could not save design');
-    return data as { id: string; url: string; metal: string };
+    if (!res.ok) throw new Error(data.error ?? data.detail ?? 'Could not save design');
+    return data as { id: string; url: string; metal: string; quoteOnly?: boolean };
   }
 
   async function onPrimary() {
     setLoading(true);
     setError(null);
     try {
-      if (selectedToothCount(teeth) === 0) {
+      if (!customRequest && selectedToothCount(teeth) === 0) {
         throw new Error('Pick at least one tooth to continue.');
+      }
+      if (customRequest && customNotes.trim().length < 8) {
+        throw new Error('Describe what you want (at least a short sentence).');
       }
       if (!email.trim()) {
         throw new Error('Enter your email to continue.');
       }
 
-      const goldQuote = metal === 'gold';
       const design = await saveDesign();
       const designUrl = shareUrl(design.id);
+      const needsQuote = quoteOnly || design.quoteOnly || siteMode === 'closed' || !accepting;
 
-      if (goldQuote || siteMode === 'waitlist' || siteMode === 'closed') {
-        const nameGuess = email.split('@')[0]?.trim() || 'Friend';
-        const wl = await fetch('/api/waitlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            name: nameGuess,
-            phone: null,
-            honeypot,
-            designId: design.id,
-          }),
-        });
-        const wlData = await wl.json();
-        if (!wl.ok) throw new Error(wlData.error ?? 'Could not join waitlist');
-        setDone({
-          designUrl,
-          waitlistPosition: wlData.position,
-          referralLink:
-            typeof window !== 'undefined' && wlData.referralLink
-              ? wlData.referralLink.replace(
-                  /^https?:\/\/[^/]+/,
-                  window.location.origin,
-                )
-              : wlData.referralLink,
-          alreadyJoined: wlData.alreadyJoined,
-        });
+      if (needsQuote) {
+        setDone({ designUrl, quoteOnly: true });
         return;
       }
 
-      // Preorder: one email, then checkout (no second email prompt).
       router.push(
         `/checkout?design=${encodeURIComponent(design.id)}&email=${encodeURIComponent(email)}`,
       );
@@ -110,25 +102,26 @@ export function SaveDesignPanel({
     }
   }
 
-  const primaryLabel =
-    metal === 'gold' || siteMode !== 'preorder'
-      ? siteMode === 'closed'
-        ? 'Slots are full. Join waitlist'
-        : 'Join the waitlist'
+  const primaryLabel = quoteOnly
+    ? 'Save & request quote'
+    : siteMode === 'closed'
+      ? 'Save design'
       : 'Reserve your slot';
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-bg-elevated p-4">
       <h2 className="font-display text-lg text-silver-bright">
-        {siteMode === 'preorder' && metal !== 'gold' ? 'Reserve' : 'Join the list'}
+        {quoteOnly ? 'Request a quote' : 'Reserve'}
       </h2>
 
       {!done ? (
         <>
           <p className="text-sm text-text-muted">
-            {siteMode === 'preorder' && metal !== 'gold'
-              ? 'Email once. Next screen is checkout for the deposit.'
-              : 'Email once. We save your design and put you on the waitlist.'}
+            {customRequest
+              ? 'Email once. We save your custom notes and email a quote.'
+              : quoteOnly
+                ? `Email once. We save your ${pricing.metals[metal].shortLabel.toLowerCase()} design and email a quote.`
+                : 'Email once. Next screen is checkout for the deposit.'}
           </p>
           {error && (
             <p
@@ -174,7 +167,7 @@ export function SaveDesignPanel({
           >
             {loading ? 'Working…' : primaryLabel}
           </button>
-          {tier === 'founding' && siteMode === 'preorder' && metal !== 'gold' && (
+          {tier === 'founding' && !quoteOnly && accepting && (
             <p className="text-xs text-text-muted">
               Founding client pricing still open. Softer rate while production gets dialed in.
             </p>
@@ -183,31 +176,23 @@ export function SaveDesignPanel({
       ) : (
         <>
           <p className="text-sm text-ok">
-            {done.alreadyJoined
-              ? 'You are already on the waitlist. Design saved.'
-              : 'You are on the waitlist. Design saved.'}
+            {done.quoteOnly
+              ? 'Design saved. We will email a quote.'
+              : 'Design saved.'}
           </p>
-          {done.waitlistPosition != null && (
-            <p className="text-sm text-text-muted">
-              Approximate spot:{' '}
-              <span className="text-silver-bright">#{done.waitlistPosition}</span>
-            </p>
-          )}
+          <p className="text-sm text-text-muted">
+            Questions?{' '}
+            <a
+              href={`mailto:${siteConfig.contactEmail}?subject=Quote%20request&body=Design:%20${encodeURIComponent(done.designUrl)}`}
+              className="text-silver underline"
+            >
+              {siteConfig.contactEmail}
+            </a>
+          </p>
           <p className="text-sm text-text-muted">Share your design:</p>
           <a href={done.designUrl} className="block break-all text-sm text-silver underline">
             {done.designUrl}
           </a>
-          {done.referralLink && (
-            <>
-              <p className="mt-2 text-sm text-text-muted">Your referral link:</p>
-              <a
-                href={done.referralLink}
-                className="block break-all text-sm text-silver underline"
-              >
-                {done.referralLink}
-              </a>
-            </>
-          )}
         </>
       )}
     </div>

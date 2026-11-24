@@ -69,6 +69,8 @@ const TABLES: TableDef[] = [
       { key: 'teeth_json', kind: 'string', size: 20000 },
       { key: 'metal', kind: 'string', size: 16 },
       { key: 'estimate_cents', kind: 'integer' },
+      /** JSON: { enabled, notes, referenceUrl } for non-catalog requests */
+      { key: 'custom_json', kind: 'string', size: 8000 },
     ],
     indexes: [],
   },
@@ -154,7 +156,7 @@ const TABLES: TableDef[] = [
 
 /** value_json holds a JSON-encoded value (including quote marks for strings). */
 const SETTINGS_SEED: Record<string, string> = {
-  site_mode: JSON.stringify('waitlist'), // -> "waitlist"
+  site_mode: JSON.stringify('preorder'), // accepting customers
   site_public: JSON.stringify(false), // -> false
   founding_slots_total: JSON.stringify(5), // -> 5
   applied_spot: JSON.stringify(61.19), // -> 61.19

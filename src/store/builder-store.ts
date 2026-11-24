@@ -39,8 +39,15 @@ type BuilderState = {
   hovered: ToothId | null;
   /** Style waiting to apply on the next tooth tap when nothing is selected. */
   pendingStyle: ToothStyle | null;
+  /** Customer wants something outside listed styles / presets. */
+  customRequest: boolean;
+  customNotes: string;
+  customReferenceUrl: string;
   setArch: (arch: ArchChoice) => void;
   setMetal: (metal: MetalId) => void;
+  setCustomRequest: (on: boolean) => void;
+  setCustomNotes: (notes: string) => void;
+  setCustomReferenceUrl: (url: string) => void;
   selectTooth: (id: ToothId, multi?: boolean) => void;
   /** Select a tooth; apply pendingStyle if set. */
   tapTooth: (id: ToothId) => void;
@@ -78,10 +85,19 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   selected: [],
   hovered: null,
   pendingStyle: null,
+  customRequest: false,
+  customNotes: '',
+  customReferenceUrl: '',
 
   setArch: (arch) => set({ arch, selected: [], hovered: null }),
 
   setMetal: (metal) => set({ metal }),
+
+  setCustomRequest: (on) => set({ customRequest: on }),
+
+  setCustomNotes: (notes) => set({ customNotes: notes }),
+
+  setCustomReferenceUrl: (url) => set({ customReferenceUrl: url }),
 
   selectTooth: (id, multi = false) => {
     const allowed = toothIdsForArch(get().arch);

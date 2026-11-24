@@ -11,7 +11,7 @@ const STEPS = [
   { title: 'Impression', body: 'Mail kit or in-person in New Rochelle.' },
   { title: 'Scan', body: 'Your mold becomes the fit source of truth.' },
   { title: 'Print', body: 'Resin model of your design on your arch.' },
-  { title: 'Cast', body: 'Sterling silver. The real metal, not plated.' },
+  { title: 'Cast', body: 'Sterling silver ready to order; gold / platinum / plating quoted.' },
   { title: 'Polish', body: 'Brushed or polished finish, cleaned up.' },
   { title: 'Ship', body: 'Out the door with a care card.' },
 ];
@@ -19,7 +19,11 @@ const STEPS = [
 const FAQ = [
   {
     q: 'Is this dental work?',
-    a: 'No. These are cosmetic jewelry pieces. Not a medical or dental product.',
+    a: 'No. These are removable cosmetic jewelry pieces. Not a medical or dental product. We do not make dental gold or permanent dental work.',
+  },
+  {
+    q: 'What metals do you offer?',
+    a: 'Sterling silver is ready to order online. Gold, platinum, and gold plating are available on request (quoted per order). Diamonds, CZ, moissanite, and other stones can be added on request.',
   },
   {
     q: 'What are founding clients?',
@@ -27,7 +31,7 @@ const FAQ = [
   },
   {
     q: 'How does the deposit work?',
-    a: `You pay a ${pricing.depositPercent}% deposit to reserve your slot (plus the $${pricing.kitFee} kit fee in the deposit if we mail a kit, credited so your total stays the grill price). Rest is due when the piece is ready. Minimum order $${pricing.minimumOrder}. See Terms for when the deposit / kit fee become non-refundable.`,
+    a: `For silver (priced online), you pay a ${pricing.depositPercent}% deposit to reserve your slot (plus the $${pricing.kitFee} kit fee in the deposit if we mail a kit, credited so your total stays the grill price). Rest is due when the piece is ready. Minimum order $${pricing.minimumOrder}. Quote metals are emailed separately. See Terms for when the deposit / kit fee become non-refundable.`,
   },
   {
     q: 'Do I need a dentist?',
@@ -48,11 +52,9 @@ export default async function HomePage() {
   const founding = await getFoundingSlotsRemaining();
 
   const cta =
-    settings.site_mode === 'preorder'
-      ? { href: '/build', label: 'Reserve your slot' }
-      : settings.site_mode === 'closed'
-        ? { href: '/waitlist', label: 'Slots are full. Join waitlist' }
-        : { href: '/waitlist', label: 'Join the waitlist' };
+    settings.site_mode === 'closed'
+      ? { href: '/build', label: 'Build a design' }
+      : { href: '/build', label: 'Reserve your slot' };
 
   return (
     <>
@@ -77,10 +79,11 @@ export default async function HomePage() {
                 Custom grillz
               </h1>
               <p className="mt-2 text-sm font-medium tracking-wide text-silver">
-                Silver now. Gold on request.
+                Silver ready to order. Gold, platinum, and plating on request.
               </p>
               <p className="mt-4 max-w-md text-base text-text-muted sm:text-lg">
-                Pick your teeth. Pay a deposit. Send your mold. Get silver that fits.
+                Pick your teeth. Pay a deposit on silver. Send your mold. Removable jewelry
+                only — stones on request.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link

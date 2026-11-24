@@ -52,8 +52,9 @@ Seed documents (custom IDs):
 | email | string 254 |
 | arch | string 16 (`top`/`bottom`/`both`) |
 | teeth_json | string 20000 |
-| metal | string 16 (`silver` / `vermeil` / `gold`) |
+| metal | string 16 (`silver` / `gold` / `platinum` / `plating`) |
 | estimate_cents | integer |
+| custom_json | string 8000 (`{ enabled, notes, referenceUrl }`) |
 
 #### `orders`
 | Attr | Type | Indexes |

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { saveDesignSchema } from '@/lib/validations';
 import { calculateEstimate } from '@/lib/pricing';
-import { normalizeMetalId } from '@/lib/pricing.config';
+import { normalizeMetalId, isQuoteOnlyMetal } from '@/lib/pricing.config';
 import { getSettings, resolvePublicTier } from '@/lib/settings';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { createDoc, col } from '@/lib/db';
+import { serializeCustomJson } from '@/lib/custom-request';
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
@@ -16,13 +17,18 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = saveDesignSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid design' }, { status: 400 });
+    const issue = parsed.error.issues[0];
+    return NextResponse.json(
+      { error: issue?.message ?? 'Invalid design' },
+      { status: 400 },
+    );
   }
   if (parsed.data.honeypot) {
     return NextResponse.json({ ok: true, id: 'ok', url: '/' });
   }
 
   const metal = normalizeMetalId(parsed.data.metal);
+  const customRequest = Boolean(parsed.data.customRequest);
   const settings = await getSettings();
   const tier = await resolvePublicTier();
   const estimate = calculateEstimate({
@@ -34,12 +40,21 @@ export async function POST(request: Request) {
     metal,
   });
 
-  if (estimate.selectedToothCount === 0) {
+  const toothCount = estimate.selectedToothCount;
+  if (!customRequest && toothCount === 0) {
     return NextResponse.json(
       { error: 'Select at least one tooth before saving.' },
       { status: 400 },
     );
   }
+
+  const custom_json = serializeCustomJson({
+    enabled: customRequest,
+    notes: parsed.data.customNotes ?? '',
+    referenceUrl: parsed.data.customReferenceUrl ?? '',
+  });
+
+  const quoteOnly = customRequest || isQuoteOnlyMetal(metal) || estimate.quoteOnly;
 
   try {
     const doc = await createDoc(col.designs, {
@@ -47,16 +62,18 @@ export async function POST(request: Request) {
       arch: parsed.data.arch,
       teeth_json: JSON.stringify(parsed.data.teeth),
       metal,
-      estimate_cents: estimate.totalCents ?? 0,
+      estimate_cents: quoteOnly ? 0 : (estimate.totalCents ?? 0),
+      custom_json,
     });
 
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     return NextResponse.json({
       id: doc.$id,
       url: `${base}/d/${doc.$id}`,
-      estimate_cents: estimate.totalCents,
-      priced: estimate.priced,
-      quoteOnly: estimate.quoteOnly,
+      estimate_cents: quoteOnly ? null : estimate.totalCents,
+      priced: quoteOnly ? false : estimate.priced,
+      quoteOnly,
+      customRequest,
       metal,
       tier,
     });
@@ -76,12 +93,19 @@ export async function POST(request: Request) {
     if (/paused|suspended|disabled/i.test(message)) {
       error =
         'Could not save design — Appwrite project looks paused or unavailable. Unpause it in the Appwrite console, then try again.';
-    } else if (/unknown attribute|Invalid document structure|Attribute not found|metal/i.test(message)) {
+    } else if (
+      /unknown attribute|Invalid document structure|Attribute not found|custom_json|metal/i.test(
+        message,
+      )
+    ) {
       error =
-        'Could not save design — Appwrite designs table is missing a required column (likely metal). Add string column metal (size 16), or run npm run setup:appwrite.';
+        'Could not save design — Appwrite designs table is missing a required column (metal and/or custom_json). Add them or run npm run setup:appwrite.';
     } else if (/Missing Appwrite|credentials|unauthorized|401|403/i.test(message)) {
       error =
         'Could not save design — Appwrite credentials on the server look wrong or missing. Check Render env vars.';
+    } else if (/database_not_found|Database with the requested ID/i.test(message)) {
+      error =
+        'Could not save design — Appwrite database ID on the server does not match. Set APPWRITE_DATABASE_ID to your real database ID.';
     }
 
     return NextResponse.json(

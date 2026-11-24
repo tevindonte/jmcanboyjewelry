@@ -1,0 +1,29 @@
+# Free Appwrite projects pause after ~7 days with no Console activity.
+# This job upserts settings/keepalive_at every 5 days. Not guaranteed —
+# upgrade Appwrite if the shop must stay up without manual Console visits.
+name: Appwrite keepalive
+
+on:
+  schedule:
+    # Every 5 days at 12:00 UTC
+    - cron: '0 12 */5 * *'
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Write Appwrite heartbeat
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          APPWRITE_DATABASE_ID: ${{ secrets.APPWRITE_DATABASE_ID }}
+          KEEPALIVE_SOURCE: github-actions
+        run: npx tsx scripts/keepalive-appwrite.ts

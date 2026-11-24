@@ -21,6 +21,7 @@ const defaults: AppSettings = {
   site_mode: 'preorder',
   site_public: true,
   founding_slots_total: pricing.founding.slots,
+  /** Keep in sync with pricing.metal.spotReference so public tooth prices stay at list. */
   applied_spot: pricing.metal.spotReference,
 };
 

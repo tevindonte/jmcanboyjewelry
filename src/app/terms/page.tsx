@@ -1,6 +1,7 @@
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { siteConfig } from '@/lib/site.config';
+import { pricing } from '@/lib/pricing.config';
 
 export const metadata = { title: 'Terms' };
 
@@ -29,9 +30,9 @@ export default function TermsPage() {
           with you.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
-          Mailed kits add a $30 kit fee inside your deposit. It&apos;s credited so your total still
-          equals the grill price (you don&apos;t pay kit on top). That kit fee is non-refundable
-          once the kit ships. Local impressions in {siteConfig.location} pay no kit fee.
+          Mailed kits add a ${pricing.kitFee ?? 35} kit fee inside your deposit, charged on top of
+          the grill price (not credited). That kit fee is non-refundable once the kit ships. Local
+          impressions in {siteConfig.location} pay no kit fee.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-steel">
           {/* TODO(owner): exact refund rule if the mold is unusable */}

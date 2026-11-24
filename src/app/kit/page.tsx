@@ -36,7 +36,7 @@ export default function KitPage() {
           Kit fee:{' '}
           {pricing.kitFee != null ? formatUsd(pricing.kitFee) : 'Price on request'}
           {pricing.kitCreditedToBalance
-            ? '. Charged in your deposit, credited so your total stays the grill price. Non-refundable once the kit ships.'
+            ? '. Charged in your deposit on top of the grill price (not credited). Non-refundable once the kit ships.'
             : ''}{' '}
           Local pickups: no kit fee.
         </p>

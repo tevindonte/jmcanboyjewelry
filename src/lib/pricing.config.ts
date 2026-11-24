@@ -15,12 +15,12 @@ export const pricing = {
    */
   minimumOrder: 150 as number | null,
   /**
-   * Mailed kits only. Confirmed: $30 — charged in the deposit, credited so
-   * customer total stays the grill price. Non-refundable once kit ships.
+   * Mailed kits only. Confirmed Nov 2026: $35 — charged in the deposit,
+   * NOT credited to the grill price (customer pays grill + kit).
    * Local impressions + dentist scans: no kit fee.
    */
-  kitFee: 30 as number | null,
-  kitCreditedToBalance: true,
+  kitFee: 35 as number | null,
+  kitCreditedToBalance: false,
   /** Only these fulfillment paths include the kit fee in the deposit. */
   kitFeeFulfillments: ['kit_mail'] as const,
   depositPercent: 50,
@@ -30,8 +30,8 @@ export const pricing = {
     discountPercent: 15 as number | null,
   },
   metal: {
-    /** Confirmed: silver $/troy oz when base prices were set (Oct 6, 2026). */
-    spotReference: 61.19,
+    /** Silver $/troy oz reference for pass-through math (updated Nov 2026). */
+    spotReference: 40.68,
     /** TODO(owner): print volume cm³ × 10.36 */
     gramsPerTooth: {
       plain: null as number | null,

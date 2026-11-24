@@ -159,7 +159,7 @@ const SETTINGS_SEED: Record<string, string> = {
   site_mode: JSON.stringify('preorder'), // accepting customers
   site_public: JSON.stringify(false), // -> false
   founding_slots_total: JSON.stringify(5), // -> 5
-  applied_spot: JSON.stringify(61.19), // -> 61.19
+  applied_spot: JSON.stringify(40.68), // -> 40.68 (match pricing.metal.spotReference)
 };
 
 const COLUMN_TIMEOUT_MS = 2 * 60 * 1000;

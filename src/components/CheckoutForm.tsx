@@ -218,7 +218,7 @@ export function CheckoutForm({
           {kitFeeCents > 0 && pricing.kitFee != null && (
             <span className="text-text-muted">
               {' '}
-              (includes ${pricing.kitFee} kit fee, credited to your total)
+              (includes ${pricing.kitFee} kit fee, charged on top of the grill)
             </span>
           )}
           {fulfillment === 'dentist_scan' && (

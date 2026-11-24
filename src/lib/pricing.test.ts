@@ -154,8 +154,10 @@ describe('calculateEstimate', () => {
     expect(scan.priced).toBe(true);
     expect(kit.kitFeeCents).toBe(Math.round((pricing.kitFee ?? 0) * 100));
     expect(scan.kitFeeCents).toBe(0);
-    expect(kit.totalCents).toBe(scan.totalCents);
+    // Kit not credited: total = grill + kit; deposit = 50% grill + kit
+    expect(kit.totalCents).toBe((scan.totalCents ?? 0) + (kit.kitFeeCents ?? 0));
     expect(kit.depositCents).toBe((scan.depositCents ?? 0) + (kit.kitFeeCents ?? 0));
+    expect(kit.balanceCents).toBe(scan.balanceCents);
     expect(scan.priceSnapshot?.kitFeeUsd).toBe(0);
     expect(kit.priceSnapshot?.kitFeeUsd).toBe(pricing.kitFee);
   });

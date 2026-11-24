@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pricing } from '@/lib/pricing.config';
-import { calculateEstimate, type TeethMap } from '@/lib/pricing';
+import { calculateEstimate, unitPriceUsd, type TeethMap } from '@/lib/pricing';
 
 const spot = pricing.metal.spotReference;
 
@@ -26,9 +26,13 @@ function expectDepositMatchesSnapshot(
   const baseDeposit = Math.round(
     (result.afterDiscountCents! * pricing.depositPercent) / 100,
   );
+  const expectedTotal = pricing.kitCreditedToBalance
+    ? result.afterDiscountCents!
+    : result.afterDiscountCents! + kitFeeCents;
   expect(result.kitFeeCents).toBe(kitFeeCents);
   expect(result.depositCents).toBe(baseDeposit + kitFeeCents);
-  expect(result.totalCents).toBe(result.afterDiscountCents);
+  expect(result.totalCents).toBe(expectedTotal);
+  expect(result.balanceCents).toBe(expectedTotal - (baseDeposit + kitFeeCents));
 }
 
 describe('checkout deposit vs price snapshot', () => {
@@ -42,12 +46,29 @@ describe('checkout deposit vs price snapshot', () => {
       metal: 'silver',
     });
     expectDepositMatchesSnapshot(result);
-    expect(result.kitFeeCents).toBe(3000);
-    expect(result.priceSnapshot?.kitFeeUsd).toBe(30);
+    expect(result.kitFeeCents).toBe(3500);
+    expect(result.priceSnapshot?.kitFeeUsd).toBe(35);
     expect(result.priceSnapshot?.tier).toBe('standard');
   });
 
-  it('founding-discount order', () => {
+  it('founding Top 6 plain with kit: grill 255, deposit 162.50, balance 127.50, total 290', () => {
+    const result = calculateEstimate({
+      arch: 'top',
+      teeth: top6Plain,
+      fulfillment: 'kit_mail',
+      tier: 'founding',
+      appliedSpot: spot,
+      metal: 'silver',
+    });
+    expectDepositMatchesSnapshot(result);
+    expect(result.afterDiscountCents).toBe(25500);
+    expect(result.kitFeeCents).toBe(3500);
+    expect(result.totalCents).toBe(29000);
+    expect(result.depositCents).toBe(16250);
+    expect(result.balanceCents).toBe(12750);
+  });
+
+  it('founding-discount order without kit', () => {
     const result = calculateEstimate({
       arch: 'top',
       teeth: top6Plain,
@@ -103,5 +124,15 @@ describe('checkout deposit vs price snapshot', () => {
     expect(scan.kitFeeCents).toBe(0);
     expect(scan.priceSnapshot?.kitFeeUsd).toBe(0);
     expect(kit.depositCents).toBe((scan.depositCents ?? 0) + (kit.kitFeeCents ?? 0));
+  });
+
+  it('public silver per-tooth prices stay 50/55/60 at spot reference', () => {
+    expect(pricing.metal.spotReference).toBe(40.68);
+    expect(pricing.perTooth.plain).toBe(50);
+    expect(pricing.perTooth.window).toBe(55);
+    expect(pricing.perTooth.deepcut).toBe(60);
+    expect(unitPriceUsd('plain', pricing.metal.spotReference)).toBe(50);
+    expect(unitPriceUsd('window', pricing.metal.spotReference)).toBe(55);
+    expect(unitPriceUsd('deepcut', pricing.metal.spotReference)).toBe(60);
   });
 });

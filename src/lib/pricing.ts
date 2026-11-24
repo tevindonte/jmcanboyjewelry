@@ -493,18 +493,16 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
   }
 
   /**
-   * Kit credited to balance: customer total = grill price only.
-   * Deposit = deposit% of grill + kit fee (front-loaded).
-   * Balance = grill − deposit (kit effectively credited).
-   * Local impressions: no kit fee.
+   * Deposit = deposit% of grill + kit fee when a kit is mailed.
+   * Balance = other deposit% of grill (kit is never part of balance).
+   * kitCreditedToBalance true: customer total = grill only (legacy).
+   * kitCreditedToBalance false: customer total = grill + kit.
    */
   const totalCents = pricing.kitCreditedToBalance
     ? afterDiscountCents
     : afterDiscountCents + kitFeeCents;
   const baseDeposit = Math.round((afterDiscountCents * pricing.depositPercent) / 100);
-  const depositCents = pricing.kitCreditedToBalance
-    ? baseDeposit + kitFeeCents
-    : Math.round((totalCents * pricing.depositPercent) / 100);
+  const depositCents = baseDeposit + kitFeeCents;
   const balanceCents = totalCents - depositCents;
 
   const snapshot: PriceSnapshot = {

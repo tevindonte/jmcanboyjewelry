@@ -85,9 +85,14 @@ export function AdminDashboard({
     <main className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-2xl font-bold text-silver-bright">Admin</h1>
-        <a href="/api/admin/export" className="text-sm text-silver underline">
-          Export CSV
-        </a>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link href="/admin/quote" className="text-silver underline">
+            Quote calculator
+          </Link>
+          <a href="/api/admin/export" className="text-silver underline">
+            Export CSV
+          </a>
+        </div>
       </div>
 
       {msg && <p className="mt-4 text-sm text-ok">{msg}</p>}

@@ -31,7 +31,7 @@ const FAQ = [
   },
   {
     q: 'How does the deposit work?',
-    a: `For silver (priced online), you pay a ${pricing.depositPercent}% deposit to reserve your slot (plus the $${pricing.kitFee} kit fee in the deposit if we mail a kit, credited so your total stays the grill price). Rest is due when the piece is ready. Minimum order $${pricing.minimumOrder}. Quote metals are emailed separately. See Terms for when the deposit / kit fee become non-refundable.`,
+    a: `For silver (priced online), you pay a ${pricing.depositPercent}% deposit on the grill plus the $${pricing.kitFee} kit fee in that deposit if we mail a kit (kit is charged on top of the grill, not credited). Rest of the grill is due when the piece is ready. Minimum order $${pricing.minimumOrder}. Quote metals are emailed separately. See Terms for when the deposit / kit fee become non-refundable.`,
   },
   {
     q: 'Do I need a dentist?',

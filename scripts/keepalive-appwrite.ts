@@ -12,6 +12,34 @@ import { Client, TablesDB, ID } from 'node-appwrite';
 
 loadEnv({ path: resolve(process.cwd(), '.env.local') });
 
+/** Fingerprint that avoids GitHub masking the whole secret value in logs. */
+function fingerprint(label: string, value: string) {
+  const len = value.length;
+  const head = [...value.slice(0, 4)].join(' ');
+  const tail = [...value.slice(-4)].join(' ');
+  console.log(`${label}: len=${len} head=[${head}] tail=[${tail}]`);
+}
+
+async function listDatabases(tables: TablesDB) {
+  try {
+    const res = await tables.list();
+    const rows = (res as { databases?: Array<{ $id: string; name: string }> }).databases ?? [];
+    if (!rows.length) {
+      console.error('No databases in this project (wrong PROJECT_ID, or project is empty/paused).');
+      return;
+    }
+    console.error('Databases in this project:');
+    for (const db of rows) {
+      console.error(`  - id=${db.$id}  name=${db.name}`);
+    }
+  } catch (listErr) {
+    console.error(
+      'Could not list databases (API key needs databases.read):',
+      listErr instanceof Error ? listErr.message : listErr,
+    );
+  }
+}
+
 async function main() {
   const endpoint =
     process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? process.env.APPWRITE_ENDPOINT ?? '';
@@ -37,6 +65,11 @@ async function main() {
     process.exit(1);
   }
 
+  console.log('endpoint:', endpoint);
+  fingerprint('project', projectId);
+  fingerprint('database', databaseId);
+  fingerprint('apiKey', apiKey);
+
   const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
   const tables = new TablesDB(client);
   const rowId = 'keepalive_at';
@@ -48,21 +81,25 @@ async function main() {
   };
 
   try {
+    await tables.updateRow({
+      databaseId,
+      tableId: 'settings',
+      rowId,
+      data: payload,
+    });
+    console.log('keepalive updated', rowId);
+    return;
+  } catch (updateErr) {
+    const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+    if (/could not be found|not found/i.test(msg) && /database/i.test(msg)) {
+      console.error(msg);
+      await listDatabases(tables);
+      throw new Error(
+        'Database ID not found in this project. Copy an id= value from the list above into the APPWRITE_DATABASE_ID secret (and confirm PROJECT_ID).',
+      );
+    }
+    // Row missing — create it
     try {
-      await tables.updateRow({
-        databaseId,
-        tableId: 'settings',
-        rowId,
-        data: payload,
-      });
-      console.log('keepalive updated', rowId);
-    } catch (updateErr) {
-      const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
-      if (/could not be found|not found/i.test(msg) && /database/i.test(msg)) {
-        throw new Error(
-          `${msg} — check APPWRITE_DATABASE_ID is the Console ID (not the name), and PROJECT_ID matches that project.`,
-        );
-      }
       await tables.createRow({
         databaseId,
         tableId: 'settings',
@@ -70,10 +107,14 @@ async function main() {
         data: payload,
       });
       console.log('keepalive created', rowId);
+    } catch (createErr) {
+      const cmsg = createErr instanceof Error ? createErr.message : String(createErr);
+      if (/could not be found|not found/i.test(cmsg) && /database/i.test(cmsg)) {
+        console.error(cmsg);
+        await listDatabases(tables);
+      }
+      throw createErr;
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(msg);
   }
 }
 

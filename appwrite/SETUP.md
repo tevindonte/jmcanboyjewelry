@@ -52,6 +52,7 @@ Seed documents (custom IDs):
 | email | string 254 |
 | arch | string 16 (`top`/`bottom`/`both`) |
 | teeth_json | string 20000 |
+| metal | string 16 (`silver` / `vermeil` / `gold`) |
 | estimate_cents | integer |
 
 #### `orders`
@@ -65,6 +66,7 @@ Seed documents (custom IDs):
 | fulfillment | string 32 | |
 | status | string 40 | key |
 | tier | string 16 | key |
+| metal | string 16 (`silver` / `vermeil` / `gold`) | |
 | price_override_cents | integer | |
 | media_consent_at | string 40 | |
 | total_cents | integer | |

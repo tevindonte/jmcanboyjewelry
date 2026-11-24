@@ -62,6 +62,36 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Could not save design' }, { status: 500 });
+    const message = e instanceof Error ? e.message : String(e);
+    const code =
+      e && typeof e === 'object' && 'code' in e
+        ? String((e as { code?: unknown }).code)
+        : undefined;
+    const type =
+      e && typeof e === 'object' && 'type' in e
+        ? String((e as { type?: unknown }).type)
+        : undefined;
+
+    let error = 'Could not save design';
+    if (/paused|suspended|disabled/i.test(message)) {
+      error =
+        'Could not save design — Appwrite project looks paused or unavailable. Unpause it in the Appwrite console, then try again.';
+    } else if (/unknown attribute|Invalid document structure|Attribute not found|metal/i.test(message)) {
+      error =
+        'Could not save design — Appwrite designs table is missing a required column (likely metal). Add string column metal (size 16), or run npm run setup:appwrite.';
+    } else if (/Missing Appwrite|credentials|unauthorized|401|403/i.test(message)) {
+      error =
+        'Could not save design — Appwrite credentials on the server look wrong or missing. Check Render env vars.';
+    }
+
+    return NextResponse.json(
+      {
+        error,
+        detail: message.slice(0, 300),
+        ...(code ? { code } : {}),
+        ...(type ? { type } : {}),
+      },
+      { status: 500 },
+    );
   }
 }

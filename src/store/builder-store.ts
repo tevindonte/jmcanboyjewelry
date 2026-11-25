@@ -31,9 +31,13 @@ const PRESET_STYLES: Record<GrillPreset, { arch: ArchChoice; ids: ToothId[]; sty
     },
   };
 
+export type GoldKarat = 10 | 14;
+
 type BuilderState = {
   arch: ArchChoice;
   metal: MetalId;
+  /** Karat when metal is gold. Default 10. Ignored for other metals. */
+  goldKarat: GoldKarat;
   teeth: TeethMap;
   selected: ToothId[];
   hovered: ToothId | null;
@@ -45,6 +49,7 @@ type BuilderState = {
   customReferenceUrl: string;
   setArch: (arch: ArchChoice) => void;
   setMetal: (metal: MetalId) => void;
+  setGoldKarat: (karat: GoldKarat) => void;
   setCustomRequest: (on: boolean) => void;
   setCustomNotes: (notes: string) => void;
   setCustomReferenceUrl: (url: string) => void;
@@ -65,7 +70,12 @@ type BuilderState = {
   applyPreset: (preset: GrillPreset) => void;
   selectTop6: () => void;
   selectBottom6: () => void;
-  loadDesign: (arch: ArchChoice, teeth: TeethMap, metal?: MetalId) => void;
+  loadDesign: (
+    arch: ArchChoice,
+    teeth: TeethMap,
+    metal?: MetalId,
+    goldKarat?: GoldKarat,
+  ) => void;
 };
 
 function emptyTeeth(): TeethMap {
@@ -81,6 +91,7 @@ const CYCLE: ToothStyle[] = ['none', 'plain', 'window', 'deepcut'];
 export const useBuilderStore = create<BuilderState>((set, get) => ({
   arch: 'top',
   metal: 'silver',
+  goldKarat: 10,
   teeth: emptyTeeth(),
   selected: [],
   hovered: null,
@@ -92,6 +103,8 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   setArch: (arch) => set({ arch, selected: [], hovered: null }),
 
   setMetal: (metal) => set({ metal }),
+
+  setGoldKarat: (goldKarat) => set({ goldKarat }),
 
   setCustomRequest: (on) => set({ customRequest: on }),
 
@@ -232,10 +245,11 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     get().applyPreset('bottom6');
   },
 
-  loadDesign: (arch, teeth, metal = 'silver') =>
+  loadDesign: (arch, teeth, metal = 'silver', goldKarat = 10) =>
     set({
       arch,
       metal,
+      goldKarat,
       teeth: { ...emptyTeeth(), ...teeth },
       selected: [],
       pendingStyle: null,

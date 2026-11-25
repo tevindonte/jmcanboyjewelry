@@ -1,7 +1,14 @@
 /**
- * Pure internal quote calculator. Admin-only — do not import from public routes.
+ * Pure internal quote calculator.
+ * Do not import from public client components (builder). Use /api/estimate for ballparks.
+ * Admin quote UI may import this on the server/client admin surface only.
  */
-import { quoteConfig, type QuoteMetalId } from './quote.config';
+import {
+  GOLD_SPOT_STALE_DAYS,
+  quoteConfig,
+  type BallparkMetalId,
+  type QuoteMetalId,
+} from './quote.config';
 
 export type QuoteInput = {
   metal: QuoteMetalId;
@@ -104,10 +111,10 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     throw new Error('Teeth count must be a positive whole number.');
   }
   if (
-    (input.metal === 'gold10k' || input.metal === 'gold14k' || input.metal === 'platinum') &&
+    (input.metal === 'gold10k' || input.metal === 'gold14k') &&
     !(input.spotPerTroyOz != null && input.spotPerTroyOz > 0)
   ) {
-    throw new Error('Enter a gold/platinum spot price ($/troy oz).');
+    throw new Error('Enter a gold spot price ($/troy oz).');
   }
 
   const targetMargin = input.targetMargin ?? quoteConfig.targetMarginDefault;
@@ -201,4 +208,87 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     unverifiedPreciousMetal: input.metal !== 'silver',
     lineItems,
   };
+}
+
+export type BallparkBand = { low: number; high: number };
+
+/** Round formula price: low down / high up to nearest $50. High = low_raw * 1.15 before rounding. */
+export function roundBallparkBand(formulaPriceUsd: number): BallparkBand {
+  const low = Math.floor(formulaPriceUsd / 50) * 50;
+  const high = Math.ceil((formulaPriceUsd * 1.15) / 50) * 50;
+  return { low, high };
+}
+
+/**
+ * Sum castable volume from a teeth map. Platinum applies platinumMultiplier.
+ */
+export function volumeCm3ForTeeth(
+  teeth: Record<string, string>,
+  metal: BallparkMetalId,
+): { volumeCm3: number; toothCount: number } {
+  let volumeCm3 = 0;
+  let toothCount = 0;
+  for (const style of Object.values(teeth)) {
+    if (style === 'plain' || style === 'window' || style === 'deepcut') {
+      volumeCm3 += quoteConfig.volumes[style];
+      toothCount += 1;
+    }
+  }
+  if (metal === 'platinum') {
+    volumeCm3 *= quoteConfig.volumes.platinumMultiplier;
+  }
+  return { volumeCm3, toothCount };
+}
+
+export function resolveBallparkMetal(
+  metal: string,
+  goldKarat: 10 | 14 = 10,
+): BallparkMetalId | null {
+  if (metal === 'gold10k' || metal === 'gold14k' || metal === 'platinum') {
+    return metal;
+  }
+  if (metal === 'gold') {
+    return goldKarat === 14 ? 'gold14k' : 'gold10k';
+  }
+  return null;
+}
+
+/**
+ * Public-facing ballpark from the admin quote formula at default margin.
+ * Returns null for silver, plating, custom-only, or empty teeth (no estimate).
+ */
+export function calculateBallparkEstimate(input: {
+  metal: string;
+  teeth: Record<string, string>;
+  goldKarat?: 10 | 14;
+}): (BallparkBand & { metal: BallparkMetalId; configVersion: string }) | null {
+  const quoteMetal = resolveBallparkMetal(input.metal, input.goldKarat ?? 10);
+  if (!quoteMetal) return null;
+
+  const { volumeCm3, toothCount } = volumeCm3ForTeeth(input.teeth, quoteMetal);
+  if (toothCount === 0 || !(volumeCm3 > 0)) return null;
+
+  const quote = calculateQuote({
+    metal: quoteMetal,
+    volumeCm3,
+    teeth: toothCount,
+    spotPerTroyOz: quoteConfig.goldSpot.usdPerTroyOz,
+    targetMargin: quoteConfig.targetMarginDefault,
+  });
+
+  const band = roundBallparkBand(quote.formulaPrice);
+  return {
+    ...band,
+    metal: quoteMetal,
+    configVersion: quoteConfig.estimateConfigVersion,
+  };
+}
+
+/** True when the manual gold spot date is older than GOLD_SPOT_STALE_DAYS. */
+export function isGoldSpotStale(now = new Date()): boolean {
+  const raw = quoteConfig.goldSpot.updatedAt;
+  const updated = new Date(`${raw}T00:00:00.000Z`);
+  if (Number.isNaN(updated.getTime())) return true;
+  const ageMs = now.getTime() - updated.getTime();
+  return ageMs > GOLD_SPOT_STALE_DAYS * 24 * 60 * 60 * 1000;
 }

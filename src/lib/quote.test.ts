@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calculateQuote, castingCostUsd } from './quote';
+import {
+  calculateBallparkEstimate,
+  calculateQuote,
+  castingCostUsd,
+  isGoldSpotStale,
+  roundBallparkBand,
+} from './quote';
+import { quoteConfig } from './quote.config';
 
 const SILVER_TOL = 2;
 const PLAT_TOL = 2;
@@ -73,9 +80,113 @@ describe('calculateQuote', () => {
       metal: 'platinum',
       volumeCm3: 0.82,
       teeth: 6,
-      spotPerTroyOz: 1000,
     });
     expect(g.unverifiedPreciousMetal).toBe(true);
     expect(p.unverifiedPreciousMetal).toBe(true);
+  });
+});
+
+function plainTeeth(count: number): Record<string, string> {
+  const ids = [
+    'U1',
+    'U2',
+    'U3',
+    'U4',
+    'U5',
+    'U6',
+    'U7',
+    'U8',
+    'L1',
+    'L2',
+    'L3',
+    'L4',
+    'L5',
+    'L6',
+    'L7',
+    'L8',
+  ];
+  const teeth: Record<string, string> = {};
+  for (let i = 0; i < count; i++) teeth[ids[i]] = 'plain';
+  return teeth;
+}
+
+describe('calculateBallparkEstimate', () => {
+  const BAND_TOL = 100;
+
+  it('10k 6 teeth plain ≈ $950 to $1,150', () => {
+    const b = calculateBallparkEstimate({
+      metal: 'gold',
+      goldKarat: 10,
+      teeth: plainTeeth(6),
+    });
+    expect(b).not.toBeNull();
+    expect(Math.abs(b!.low - 950)).toBeLessThanOrEqual(BAND_TOL);
+    expect(Math.abs(b!.high - 1150)).toBeLessThanOrEqual(BAND_TOL);
+    expect(b!.metal).toBe('gold10k');
+    expect(b!.configVersion).toBe(quoteConfig.estimateConfigVersion);
+  });
+
+  it('10k 16 teeth plain ≈ $2,350 to $2,750', () => {
+    const b = calculateBallparkEstimate({
+      metal: 'gold10k',
+      teeth: plainTeeth(16),
+    });
+    expect(b).not.toBeNull();
+    expect(Math.abs(b!.low - 2350)).toBeLessThanOrEqual(BAND_TOL);
+    expect(Math.abs(b!.high - 2750)).toBeLessThanOrEqual(BAND_TOL);
+  });
+
+  it('14k 6 teeth plain is higher than 10k and rounds to $50', () => {
+    const ten = calculateBallparkEstimate({
+      metal: 'gold',
+      goldKarat: 10,
+      teeth: plainTeeth(6),
+    })!;
+    const fourteen = calculateBallparkEstimate({
+      metal: 'gold',
+      goldKarat: 14,
+      teeth: plainTeeth(6),
+    })!;
+    expect(fourteen.low).toBeGreaterThan(ten.low);
+    expect(fourteen.low % 50).toBe(0);
+    expect(fourteen.high % 50).toBe(0);
+    expect(fourteen.metal).toBe('gold14k');
+  });
+
+  it('platinum 6 teeth plain applies 1.2× volume and returns a band', () => {
+    const b = calculateBallparkEstimate({
+      metal: 'platinum',
+      teeth: plainTeeth(6),
+    });
+    expect(b).not.toBeNull();
+    expect(b!.metal).toBe('platinum');
+    expect(b!.low).toBeGreaterThan(2000);
+    expect(b!.high).toBeGreaterThan(b!.low);
+    expect(b!.low % 50).toBe(0);
+    expect(b!.high % 50).toBe(0);
+  });
+
+  it('plating and silver return no estimate', () => {
+    expect(
+      calculateBallparkEstimate({ metal: 'plating', teeth: plainTeeth(6) }),
+    ).toBeNull();
+    expect(
+      calculateBallparkEstimate({ metal: 'silver', teeth: plainTeeth(6) }),
+    ).toBeNull();
+  });
+
+  it('empty teeth return no estimate', () => {
+    expect(calculateBallparkEstimate({ metal: 'gold', teeth: {} })).toBeNull();
+  });
+
+  it('roundBallparkBand floors low and ceils high to $50', () => {
+    expect(roundBallparkBand(966.88)).toEqual({ low: 950, high: 1150 });
+    expect(roundBallparkBand(2365.15)).toEqual({ low: 2350, high: 2750 });
+  });
+
+  it('isGoldSpotStale respects updatedAt + 14 days', () => {
+    const updated = new Date(`${quoteConfig.goldSpot.updatedAt}T00:00:00.000Z`);
+    expect(isGoldSpotStale(new Date(updated.getTime() + 13 * 86400000))).toBe(false);
+    expect(isGoldSpotStale(new Date(updated.getTime() + 15 * 86400000))).toBe(true);
   });
 });

@@ -5,7 +5,8 @@ import { normalizeMetalId, isQuoteOnlyMetal } from '@/lib/pricing.config';
 import { getSettings, resolvePublicTier } from '@/lib/settings';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { createDoc, col } from '@/lib/db';
-import { serializeCustomJson } from '@/lib/custom-request';
+import { formatBallparkRange, serializeCustomJson } from '@/lib/custom-request';
+import { calculateBallparkEstimate } from '@/lib/quote';
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
@@ -49,14 +50,38 @@ export async function POST(request: Request) {
   }
 
   const quoteContact = (parsed.data.quoteContact ?? '').trim();
+  const ballpark =
+    !customRequest && (metal === 'gold' || metal === 'platinum')
+      ? calculateBallparkEstimate({
+          metal,
+          teeth: parsed.data.teeth,
+          goldKarat: parsed.data.goldKarat ?? 10,
+        })
+      : null;
   const custom_json = serializeCustomJson({
     enabled: customRequest,
     notes: parsed.data.customNotes ?? '',
     referenceUrl: parsed.data.customReferenceUrl ?? '',
     contactHandle: quoteContact,
+    ...(ballpark
+      ? {
+          ballpark: {
+            low: ballpark.low,
+            high: ballpark.high,
+            metal: ballpark.metal,
+            configVersion: ballpark.configVersion,
+          },
+        }
+      : {}),
   });
 
   const quoteOnly = customRequest || isQuoteOnlyMetal(metal) || estimate.quoteOnly;
+  const metalLabel =
+    ballpark?.metal === 'gold10k'
+      ? 'gold 10k'
+      : ballpark?.metal === 'gold14k'
+        ? 'gold 14k'
+        : metal;
 
   try {
     const doc = await createDoc(col.designs, {
@@ -81,11 +106,14 @@ export async function POST(request: Request) {
         await notifyAdmin({
           eventType: 'quote_request',
           entityId: doc.$id,
-          subject: `Quote request · ${metal} · ${parsed.data.email}`,
+          subject: `Quote request · ${metalLabel} · ${parsed.data.email}`,
           summaryLines: [
             `Customer email: ${parsed.data.email.toLowerCase()}`,
             quoteContact ? `TikTok / phone: ${quoteContact}` : 'TikTok / phone: (none)',
-            `Metal: ${metal}`,
+            `Metal: ${metalLabel}`,
+            ballpark
+              ? `Ballpark shown: ${formatBallparkRange(ballpark.low, ballpark.high)} (${ballpark.metal}, config ${ballpark.configVersion})`
+              : 'Ballpark shown: (none)',
             `Arch: ${parsed.data.arch}`,
             `Teeth: ${teethEntries.length ? teethEntries.join(', ') : '(custom / none listed)'}`,
             customRequest

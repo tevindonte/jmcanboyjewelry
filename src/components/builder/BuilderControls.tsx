@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useBuilderStore, type GrillPreset } from '@/store/builder-store';
 import type { ArchChoice, MetalId, ToothStyle } from '@/lib/pricing.config';
 import { pricing, isQuoteOnlyMetal } from '@/lib/pricing.config';
@@ -14,6 +15,7 @@ import {
   type ToothId,
 } from '@/lib/pricing';
 import type { OrderTier } from '@/lib/pricing.config';
+import { formatBallparkRange } from '@/lib/custom-request';
 import { CustomRequestPanel } from './CustomRequestPanel';
 
 const METAL_CARDS: { id: MetalId; label: string; hint: string }[] = [
@@ -99,16 +101,22 @@ export function BuilderControls({
 }) {
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
+  const goldKarat = useBuilderStore((s) => s.goldKarat);
   const teeth = useBuilderStore((s) => s.teeth);
   const selected = useBuilderStore((s) => s.selected);
   const pendingStyle = useBuilderStore((s) => s.pendingStyle);
   const customRequest = useBuilderStore((s) => s.customRequest);
   const setArch = useBuilderStore((s) => s.setArch);
   const setMetal = useBuilderStore((s) => s.setMetal);
+  const setGoldKarat = useBuilderStore((s) => s.setGoldKarat);
   const chooseStyle = useBuilderStore((s) => s.chooseStyle);
   const removeTooth = useBuilderStore((s) => s.removeTooth);
   const clearStyles = useBuilderStore((s) => s.clearStyles);
   const applyPreset = useBuilderStore((s) => s.applyPreset);
+
+  const [ballpark, setBallpark] = useState<{ low: number; high: number } | null>(
+    null,
+  );
 
   const estimate = calculateEstimate({
     arch,
@@ -124,6 +132,52 @@ export function BuilderControls({
   const pricedCount = estimate.selectedToothCount;
   const empty = pricedCount === 0;
   const quoteOnly = customRequest || isQuoteOnlyMetal(metal);
+  const ballparkEligible =
+    !customRequest && (metal === 'gold' || metal === 'platinum') && pricedCount > 0;
+
+  useEffect(() => {
+    if (!ballparkEligible) {
+      setBallpark(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch('/api/estimate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              metal,
+              teeth,
+              goldKarat: metal === 'gold' ? goldKarat : 10,
+            }),
+          });
+          const data = (await res.json()) as {
+            low: number | null;
+            high: number | null;
+          };
+          if (cancelled) return;
+          if (
+            typeof data.low === 'number' &&
+            typeof data.high === 'number' &&
+            data.low > 0 &&
+            data.high > 0
+          ) {
+            setBallpark({ low: data.low, high: data.high });
+          } else {
+            setBallpark(null);
+          }
+        } catch {
+          if (!cancelled) setBallpark(null);
+        }
+      })();
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [ballparkEligible, metal, goldKarat, teeth]);
 
   const moreTeeth = teethToPassMinimum(estimate);
   const minLabel = formatUsd(pricing.minimumOrder);
@@ -209,6 +263,31 @@ export function BuilderControls({
           Removable jewelry only — not dental gold, not permanent. Gold and platinum by quote.
           Plating and stones (diamond, CZ, moissanite, etc.) upon request.
         </p>
+        {metal === 'gold' && (
+          <div
+            className="mt-3 flex gap-2"
+            role="radiogroup"
+            aria-label="Gold karat"
+          >
+            {([10, 14] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={goldKarat === k}
+                onClick={() => setGoldKarat(k)}
+                className={[
+                  'min-h-11 flex-1 rounded-md border px-3 py-2 text-sm transition-colors',
+                  goldKarat === k
+                    ? 'border-silver bg-silver/10 text-silver-bright'
+                    : 'border-border text-text-muted hover:border-steel',
+                ].join(' ')}
+              >
+                {k}k
+              </button>
+            ))}
+          </div>
+        )}
       </fieldset>
 
       {/* Per-tooth style panel */}
@@ -347,14 +426,33 @@ export function BuilderControls({
 
         {quoteOnly ? (
           <>
-            <p className="font-display text-xl text-silver-bright">Quoted per order</p>
-            <p className="mt-2 text-sm leading-relaxed text-steel">
-              {customRequest
-                ? 'Custom request — save your notes and we will email a price.'
-                : metal === 'plating'
-                  ? 'Gold plating is upon request. Save your design and we will email a price. Stones upon request.'
-                  : `${pricing.metals[metal].shortLabel} is quoted per order. Save your design and we will email a price. Plating and stones upon request.`}
-            </p>
+            {metal === 'plating' || customRequest ? (
+              <>
+                <p className="font-display text-xl text-silver-bright">Upon request</p>
+                <p className="mt-2 text-sm leading-relaxed text-steel">
+                  {customRequest
+                    ? 'Custom request — save your notes and we will email a price.'
+                    : 'Gold plating is upon request. Save your design and we will email a price. Stones upon request.'}
+                </p>
+              </>
+            ) : ballparkEligible && ballpark ? (
+              <>
+                <p className="font-display text-xl text-silver-bright">
+                  Ballpark: {formatBallparkRange(ballpark.low, ballpark.high)}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-steel">
+                  Estimate only. Your final price is emailed to you and depends on the
+                  weight and the gold price that day.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-xl text-silver-bright">Quoted per order</p>
+                <p className="mt-2 text-sm leading-relaxed text-steel">
+                  {`${pricing.metals[metal].shortLabel} is quoted per order. Save your design and we will email a price. Plating and stones upon request.`}
+                </p>
+              </>
+            )}
           </>
         ) : empty ? (
           <>

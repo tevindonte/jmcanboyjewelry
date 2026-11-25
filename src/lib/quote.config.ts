@@ -56,6 +56,36 @@ export const quoteConfig = {
   /** Public silver minimum — flag if formula price is below this */
   minimumOrderUsd: 150,
   gramsPerTroyOz: 31.1035,
+
+  /**
+   * Castable volume per tooth by style (cm³). Editable — bump estimateConfigVersion when changed.
+   * Used for public gold/platinum ballparks and admin volume defaults.
+   */
+  volumes: {
+    plain: 0.137,
+    window: 0.107,
+    deepcut: 0.16,
+    /** Platinum walls run thicker */
+    platinumMultiplier: 1.2,
+  },
+
+  /**
+   * Manual gold spot only — no live feed. Update usdPerTroyOz + updatedAt together.
+   * Admin quote page warns when updatedAt is older than 14 days. Never show on the public site.
+   */
+  goldSpot: {
+    usdPerTroyOz: 3631.2,
+    /** ISO date (YYYY-MM-DD) of the last manual spot update */
+    updatedAt: '2026-11-24',
+  },
+
+  /** Bump when volumes, margin band, or spot rules that affect public ballparks change. */
+  estimateConfigVersion: '2026-11-24.1',
 } as const;
 
 export type QuoteMetalId = 'silver' | 'gold10k' | 'gold14k' | 'platinum';
+
+export type BallparkMetalId = 'gold10k' | 'gold14k' | 'platinum';
+
+/** Days after which admin should refresh the manual gold spot. */
+export const GOLD_SPOT_STALE_DAYS = 14;

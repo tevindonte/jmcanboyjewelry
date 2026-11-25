@@ -236,6 +236,21 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
           TikTok / phone: {data.design.custom.contactHandle}
         </p>
       )}
+      {data.design?.custom?.ballpark && (
+        <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">
+          <p className="text-xs tracking-wide text-steel uppercase">
+            Ballpark shown to customer
+          </p>
+          <p className="mt-2 text-silver-bright">
+            ${data.design.custom.ballpark.low.toLocaleString('en-US')} to $
+            {data.design.custom.ballpark.high.toLocaleString('en-US')}
+          </p>
+          <p className="mt-1 text-xs text-steel">
+            {data.design.custom.ballpark.metal} · config{' '}
+            {data.design.custom.ballpark.configVersion}
+          </p>
+        </div>
+      )}
       <p className="mt-1 text-xs text-steel">
         Media consent:{' '}
         {order.media_consent_at

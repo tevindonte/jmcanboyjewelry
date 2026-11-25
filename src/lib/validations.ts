@@ -26,6 +26,8 @@ export const saveDesignSchema = z
       }),
     /** Optional TikTok handle or phone for quote follow-up. */
     quoteContact: z.string().max(80).optional().default(''),
+    /** Gold karat when metal is gold (builder toggle). Default 10k. */
+    goldKarat: z.union([z.literal(10), z.literal(14)]).optional().default(10),
     honeypot: z.string().max(0).optional().or(z.literal('')),
   })
   .superRefine((data, ctx) => {

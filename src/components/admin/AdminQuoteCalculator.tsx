@@ -1,8 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { calculateQuote } from '@/lib/quote';
-import { quoteConfig, type QuoteMetalId } from '@/lib/quote.config';
+import { calculateQuote, isGoldSpotStale } from '@/lib/quote';
+import {
+  GOLD_SPOT_STALE_DAYS,
+  quoteConfig,
+  type QuoteMetalId,
+} from '@/lib/quote.config';
 
 const METALS: { id: QuoteMetalId; label: string }[] = [
   { id: 'silver', label: 'Silver' },
@@ -29,13 +33,14 @@ export function AdminQuoteCalculator() {
   const [metal, setMetal] = useState<QuoteMetalId>('silver');
   const [volume, setVolume] = useState('0.82');
   const [teeth, setTeeth] = useState('6');
-  const [spot, setSpot] = useState('3631.2');
+  const [spot, setSpot] = useState(String(quoteConfig.goldSpot.usdPerTroyOz));
   const [margin, setMargin] = useState(String(quoteConfig.targetMarginDefault));
   const [includeKit, setIncludeKit] = useState(false);
   const [sellPrice, setSellPrice] = useState('300');
   const [competitor, setCompetitor] = useState('');
 
-  const needsSpot = metal !== 'silver';
+  const needsSpot = metal === 'gold10k' || metal === 'gold14k';
+  const spotStale = isGoldSpotStale();
 
   const computed = useMemo(() => {
     try {
@@ -68,6 +73,16 @@ export function AdminQuoteCalculator() {
           Internal only. Not shown on the public site. Constants:{' '}
           <code className="text-xs text-steel">src/lib/quote.config.ts</code>
         </p>
+        {spotStale && (
+          <p
+            role="alert"
+            className="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
+            Gold spot in config is older than {GOLD_SPOT_STALE_DAYS} days (updated{' '}
+            {quoteConfig.goldSpot.updatedAt}). Update{' '}
+            <code className="text-xs">quoteConfig.goldSpot</code> before quoting customers.
+          </p>
+        )}
       </div>
 
       <form

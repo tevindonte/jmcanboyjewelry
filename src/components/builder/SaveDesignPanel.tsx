@@ -19,6 +19,7 @@ export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
   const router = useRouter();
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
+  const goldKarat = useBuilderStore((s) => s.goldKarat);
   const teeth = useBuilderStore((s) => s.teeth);
   const customRequest = useBuilderStore((s) => s.customRequest);
   const customNotes = useBuilderStore((s) => s.customNotes);
@@ -53,6 +54,7 @@ export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
         arch,
         teeth,
         metal,
+        goldKarat: metal === 'gold' ? goldKarat : 10,
         customRequest,
         customNotes,
         customReferenceUrl,

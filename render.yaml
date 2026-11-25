@@ -29,7 +29,7 @@ services:
       - key: APPWRITE_DATABASE_ID
         value: 6ac643310002650db6f1
       - key: APPWRITE_BUCKET_MOLD_PHOTOS
-        value: mold-photos
+        value: 6ac63ea400244cc312d3
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

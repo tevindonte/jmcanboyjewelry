@@ -34,7 +34,7 @@ export default function KitPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-16 outline-none">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-16 outline-none">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Impression kit</h1>
         <p className="mt-3 text-text-muted">
           Mail kit for customers outside {siteConfig.location}. Local clients can skip this and get
@@ -58,7 +58,21 @@ export default function KitPage() {
         <h2 className="mt-12 font-display text-xl text-silver-bright">
           How to take your impression
         </h2>
-        <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm text-text-muted">
+        <figure className="mt-6 overflow-hidden rounded-lg border border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/impression-process.jpg"
+            alt="JMCANBOY Jewelry impression process: eight steps from preparing putty and trays through mixing, loading the tray, taking upper and lower impressions, and checking the final results."
+            className="h-auto w-full"
+            width={1920}
+            height={1080}
+          />
+          <figcaption className="border-t border-border px-3 py-2 text-xs text-steel">
+            Visual guide — follow the numbered steps on this page for set times and return
+            shipping.
+          </figcaption>
+        </figure>
+        <ol className="mt-6 list-decimal space-y-3 pl-5 text-sm text-text-muted">
           {STEPS.map((s) => (
             <li key={s}>{s}</li>
           ))}

@@ -89,6 +89,9 @@ export function AdminDashboard({
           <Link href="/admin/quote" className="text-silver underline">
             Quote calculator
           </Link>
+          <Link href="/admin/kit-sources" className="text-silver underline">
+            Kit sources
+          </Link>
           <a href="/api/admin/export" className="text-silver underline">
             Export CSV
           </a>

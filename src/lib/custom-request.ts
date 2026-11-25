@@ -1,10 +1,28 @@
-import type { BallparkMetalId } from './quote.config';
+import type { BallparkMetalId, QuoteMetalId } from './quote.config';
 
 export type BallparkSnapshot = {
   low: number;
   high: number;
   metal: BallparkMetalId;
   configVersion: string;
+};
+
+export type FinalQuoteInputs = {
+  metal: QuoteMetalId;
+  volumeCm3: number;
+  teeth: number;
+  spotPerTroyOz: number | null;
+  targetMargin: number;
+  foundryCastingUsd: number | null;
+  formulaPrice: number;
+  styleSummary: string;
+};
+
+export type FinalQuoteSnapshot = {
+  priceUsd: number;
+  notes: string;
+  savedAt: string;
+  inputs: FinalQuoteInputs;
 };
 
 export type CustomRequestPayload = {
@@ -15,6 +33,8 @@ export type CustomRequestPayload = {
   contactHandle?: string;
   /** Ballpark shown to the customer when they saved (gold/platinum only). */
   ballpark?: BallparkSnapshot;
+  /** Admin-saved final quote (price + inputs). */
+  finalQuote?: FinalQuoteSnapshot;
 };
 
 function parseBallpark(raw: unknown): BallparkSnapshot | undefined {
@@ -35,6 +55,50 @@ function parseBallpark(raw: unknown): BallparkSnapshot | undefined {
   return { low, high, metal, configVersion };
 }
 
+function isQuoteMetalId(v: unknown): v is QuoteMetalId {
+  return (
+    v === 'silver' || v === 'gold10k' || v === 'gold14k' || v === 'platinum'
+  );
+}
+
+function parseFinalQuote(raw: unknown): FinalQuoteSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const priceUsd = typeof o.priceUsd === 'number' ? o.priceUsd : null;
+  const notes = typeof o.notes === 'string' ? o.notes : '';
+  const savedAt = typeof o.savedAt === 'string' ? o.savedAt : '';
+  const inputsRaw = o.inputs;
+  if (priceUsd == null || !savedAt || !inputsRaw || typeof inputsRaw !== 'object') {
+    return undefined;
+  }
+  const i = inputsRaw as Record<string, unknown>;
+  if (!isQuoteMetalId(i.metal)) return undefined;
+  const volumeCm3 = typeof i.volumeCm3 === 'number' ? i.volumeCm3 : null;
+  const teeth = typeof i.teeth === 'number' ? i.teeth : null;
+  const targetMargin = typeof i.targetMargin === 'number' ? i.targetMargin : null;
+  const formulaPrice = typeof i.formulaPrice === 'number' ? i.formulaPrice : null;
+  const styleSummary = typeof i.styleSummary === 'string' ? i.styleSummary : '';
+  if (volumeCm3 == null || teeth == null || targetMargin == null || formulaPrice == null) {
+    return undefined;
+  }
+  return {
+    priceUsd,
+    notes,
+    savedAt,
+    inputs: {
+      metal: i.metal,
+      volumeCm3,
+      teeth,
+      spotPerTroyOz: typeof i.spotPerTroyOz === 'number' ? i.spotPerTroyOz : null,
+      targetMargin,
+      foundryCastingUsd:
+        typeof i.foundryCastingUsd === 'number' ? i.foundryCastingUsd : null,
+      formulaPrice,
+      styleSummary,
+    },
+  };
+}
+
 export function parseCustomJson(raw: unknown): CustomRequestPayload | null {
   if (raw == null || raw === '') return null;
   try {
@@ -49,13 +113,24 @@ export function parseCustomJson(raw: unknown): CustomRequestPayload | null {
     const contactHandle =
       typeof parsed.contactHandle === 'string' ? parsed.contactHandle.trim() : '';
     const ballpark = parseBallpark(parsed.ballpark);
-    if (!enabled && !notes && !referenceUrl && !contactHandle && !ballpark) return null;
+    const finalQuote = parseFinalQuote(parsed.finalQuote);
+    if (
+      !enabled &&
+      !notes &&
+      !referenceUrl &&
+      !contactHandle &&
+      !ballpark &&
+      !finalQuote
+    ) {
+      return null;
+    }
     return {
       enabled,
       notes,
       referenceUrl,
       ...(contactHandle ? { contactHandle } : {}),
       ...(ballpark ? { ballpark } : {}),
+      ...(finalQuote ? { finalQuote } : {}),
     };
   } catch {
     return null;
@@ -70,6 +145,7 @@ export function serializeCustomJson(payload: CustomRequestPayload): string {
     referenceUrl: payload.referenceUrl.trim(),
     ...(contactHandle ? { contactHandle } : {}),
     ...(payload.ballpark ? { ballpark: payload.ballpark } : {}),
+    ...(payload.finalQuote ? { finalQuote: payload.finalQuote } : {}),
   });
 }
 

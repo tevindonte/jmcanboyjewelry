@@ -35,6 +35,11 @@ export function designPublicPath(designId: string): string {
   return `/d/${designId}`;
 }
 
+/** Admin design / quote-request page (calculator + final quote). */
+export function adminDesignPath(designId: string): string {
+  return `/admin/designs/${designId}`;
+}
+
 export function notifyClaimId(eventType: string, entityId: string): string {
   // Appwrite custom IDs max 36 chars — hash keeps event+entity unique and short.
   const h = createHash('sha256')

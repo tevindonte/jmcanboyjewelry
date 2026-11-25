@@ -140,6 +140,13 @@ export async function PATCH(
         adminOrderPath,
         traySizeLabel,
       } = await import('@/lib/admin-notify');
+      const { getKitSources } = await import('@/lib/kit-sources');
+      const {
+        kitBuyUrlForTray,
+        kitBuyLabelForTray,
+      } = await import('@/lib/kit-sources.config');
+      const sources = await getKitSources();
+      const buyUrl = kitBuyUrlForTray(addr.tray_size, sources);
       await notifyAdmin({
         eventType: 'kit_shipping',
         entityId: order.$id,
@@ -148,6 +155,9 @@ export async function PATCH(
           `Customer: ${order.name} <${order.email}>`,
           `Address: ${addr.line1}, ${addr.city}, ${addr.state} ${addr.postal_code} ${addr.country}`,
           `Tray size: ${traySizeLabel(addr.tray_size)}`,
+          buyUrl
+            ? `${kitBuyLabelForTray(addr.tray_size)}: ${buyUrl}`
+            : 'Buy kit link: (none configured)',
         ],
         linkPath: adminOrderPath(order.$id),
       });

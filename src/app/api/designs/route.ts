@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           .filter(([, s]) => s && s !== 'none')
           .map(([id, s]) => `${id}:${s}`)
           .sort();
-        const { notifyAdmin, designPublicPath } = await import('@/lib/admin-notify');
+        const { notifyAdmin, adminDesignPath } = await import('@/lib/admin-notify');
         await notifyAdmin({
           eventType: 'quote_request',
           entityId: doc.$id,
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
               ? `Reference: ${parsed.data.customReferenceUrl}`
               : '',
           ].filter(Boolean),
-          linkPath: designPublicPath(doc.$id),
+          linkPath: adminDesignPath(doc.$id),
         });
       } catch (e) {
         console.error('quote admin notify', e);

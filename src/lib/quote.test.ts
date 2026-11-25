@@ -189,4 +189,26 @@ describe('calculateBallparkEstimate', () => {
     expect(isGoldSpotStale(new Date(updated.getTime() + 13 * 86400000))).toBe(false);
     expect(isGoldSpotStale(new Date(updated.getTime() + 15 * 86400000))).toBe(true);
   });
+
+  it('foundry casting override replaces formula casting and still buffers', () => {
+    const base = calculateQuote({
+      metal: 'gold10k',
+      volumeCm3: 0.822,
+      teeth: 6,
+      spotPerTroyOz: 3631.2,
+      targetMargin: 0.25,
+    });
+    const overridden = calculateQuote({
+      metal: 'gold10k',
+      volumeCm3: 0.822,
+      teeth: 6,
+      spotPerTroyOz: 3631.2,
+      targetMargin: 0.25,
+      castingCostOverrideUsd: 400,
+    });
+    expect(overridden.castingCostOverridden).toBe(true);
+    expect(overridden.castingCost).toBe(400);
+    expect(overridden.castingBuffered).toBeCloseTo(400 * 1.05, 2);
+    expect(overridden.formulaPrice).not.toBe(base.formulaPrice);
+  });
 });

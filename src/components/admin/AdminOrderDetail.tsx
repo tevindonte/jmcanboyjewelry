@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCents } from '@/lib/pricing';
 import { parseShippingAddressJson, traySizeLabel } from '@/lib/admin-notify';
+import { AdminOrderKitPanel } from '@/components/admin/AdminOrderKitPanel';
+import type { BallparkSnapshot, FinalQuoteSnapshot } from '@/lib/custom-request';
 
 type Detail = {
   order: {
@@ -25,6 +27,7 @@ type Detail = {
     shipping_address_json?: string | null;
   };
   design: {
+    id?: string;
     arch: string;
     teeth: Record<string, string>;
     metal?: string;
@@ -33,6 +36,8 @@ type Detail = {
       notes: string;
       referenceUrl: string;
       contactHandle?: string;
+      ballpark?: BallparkSnapshot;
+      finalQuote?: FinalQuoteSnapshot;
     } | null;
   } | null;
   events: { type: string; note: string | null; created_at: string }[];
@@ -206,7 +211,18 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
             {shipping.city}, {shipping.state} {shipping.postal_code} {shipping.country}
           </p>
           <p className="mt-2 text-silver">Tray: {traySizeLabel(shipping.tray_size)}</p>
+          <AdminOrderKitPanel traySize={shipping.tray_size} />
         </div>
+      )}
+      {data.design?.id && (
+        <p className="mt-3 text-sm">
+          <Link
+            href={`/admin/designs/${data.design.id}`}
+            className="text-silver underline"
+          >
+            Open design quote calculator
+          </Link>
+        </p>
       )}
       {data.design?.custom?.enabled && (
         <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">

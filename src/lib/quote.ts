@@ -23,6 +23,8 @@ export type QuoteInput = {
   includeKit?: boolean;
   /** Optional competitor price for comparison */
   competitorPriceUsd?: number | null;
+  /** When set, replaces formula casting cost (buffer still applies on top). */
+  castingCostOverrideUsd?: number | null;
 };
 
 export type QuoteResult = {
@@ -53,6 +55,8 @@ export type QuoteResult = {
   effectiveHourly: (sellPriceUsd: number) => number;
   competitorPriceUsd: number | null;
   unverifiedPreciousMetal: boolean;
+  /** True when castingCost came from castingCostOverrideUsd */
+  castingCostOverridden: boolean;
   lineItems: { label: string; amount: number }[];
 };
 
@@ -122,7 +126,13 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     throw new Error('Target margin must be between 0 and less than (1 − card %).');
   }
 
-  const castingCost = castingCostUsd(input.metal, volumeCm3, input.spotPerTroyOz);
+  const castingOverridden =
+    input.castingCostOverrideUsd != null &&
+    Number.isFinite(input.castingCostOverrideUsd) &&
+    input.castingCostOverrideUsd >= 0;
+  const castingCost = castingOverridden
+    ? Number(input.castingCostOverrideUsd)
+    : castingCostUsd(input.metal, volumeCm3, input.spotPerTroyOz);
   const bufferRate = bufferRateFor(input.metal);
   const castingBuffered = castingCost * (1 + bufferRate);
   const hours = laborHours(teeth);
@@ -165,11 +175,21 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   }
 
   const lineItems: { label: string; amount: number }[] = [
-    { label: 'Casting', amount: round2(castingCost) },
-    { label: `Buffer (${(bufferRate * 100).toFixed(0)}%)`, amount: round2(castingBuffered - castingCost) },
+    {
+      label: castingOverridden ? 'Casting (foundry quote)' : 'Casting',
+      amount: round2(castingCost),
+    },
+    {
+      label: `Buffer (${(bufferRate * 100).toFixed(0)}%)`,
+      amount: round2(castingBuffered - castingCost),
+    },
     { label: 'Labor', amount: round2(laborCost) },
     { label: 'Shipping', amount: round2(shippingCost) },
     { label: 'Card flat', amount: round2(cardFlat) },
+    {
+      label: `Card % (${(quoteConfig.cardFee.percent * 100).toFixed(0)}% of price)`,
+      amount: round2(formulaPrice * quoteConfig.cardFee.percent),
+    },
     { label: 'Order cost', amount: round2(orderCost) },
     { label: 'Formula price (grill)', amount: round2(formulaPrice) },
   ];
@@ -206,8 +226,56 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
         ? input.competitorPriceUsd
         : null,
     unverifiedPreciousMetal: input.metal !== 'silver',
+    castingCostOverridden: castingOverridden,
     lineItems,
   };
+}
+
+/** Human-readable style mix from a teeth map, e.g. "4× plain, 2× window". */
+export function summarizeTeethStyles(teeth: Record<string, string>): string {
+  const counts: Record<string, number> = {};
+  for (const style of Object.values(teeth)) {
+    if (style === 'plain' || style === 'window' || style === 'deepcut') {
+      counts[style] = (counts[style] ?? 0) + 1;
+    }
+  }
+  const parts = (['plain', 'window', 'deepcut'] as const)
+    .filter((k) => counts[k])
+    .map((k) => `${counts[k]}× ${k === 'deepcut' ? 'deep cut' : k}`);
+  return parts.length ? parts.join(', ') : 'none';
+}
+
+export function quoteMetalLabel(metal: QuoteMetalId): string {
+  if (metal === 'gold10k') return 'Gold 10k';
+  if (metal === 'gold14k') return 'Gold 14k';
+  if (metal === 'platinum') return 'Platinum';
+  return 'Silver';
+}
+
+/** Plain-text quote email for admin to copy (not sent automatically). */
+export function buildQuoteEmailText(opts: {
+  priceUsd: number;
+  metal: QuoteMetalId;
+  teethSummary: string;
+}): string {
+  const price = opts.priceUsd.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  });
+  return [
+    `Hi — here's your quote from JMCANBOY Jewelry.`,
+    '',
+    `Price: ${price}`,
+    `Metal: ${quoteMetalLabel(opts.metal)}`,
+    `Design: ${opts.teethSummary}`,
+    '',
+    `What's included: a custom removable grill made from your mold or scan, finishing, and a quality check before it ships.`,
+    `Metal cost is paid upfront (with your deposit / payment schedule).`,
+    `Full terms will be emailed to you with the invoice.`,
+    '',
+    `— JMCANBOY Jewelry`,
+  ].join('\n');
 }
 
 export type BallparkBand = { low: number; high: number };

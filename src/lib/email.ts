@@ -173,6 +173,38 @@ export async function sendScanReviewResult(opts: {
   });
 }
 
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export async function sendContactMessage(opts: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const resend = getResend();
+  const to = siteConfig.contactEmail;
+  const safeName = escapeHtml(opts.name);
+  const safeEmail = escapeHtml(opts.email);
+  const safeMessage = escapeHtml(opts.message).replace(/\n/g, '<br>');
+
+  await resend.emails.send({
+    from: fromAddress(),
+    to,
+    replyTo: opts.email,
+    subject: `Contact form · ${opts.name} · ${siteConfig.brandName}`,
+    html: `
+      <p><strong>From:</strong> ${safeName} &lt;${safeEmail}&gt;</p>
+      <p><strong>Message:</strong></p>
+      <p>${safeMessage}</p>
+    `,
+  });
+}
+
 export async function sendLaunchEmail(opts: {
   to: string;
   name: string;

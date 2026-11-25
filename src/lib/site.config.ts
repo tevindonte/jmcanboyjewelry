@@ -4,7 +4,7 @@ export const siteConfig = {
   tagline:
     'Custom grillz. Sterling silver ready to order. Gold and platinum by quote.',
   location: 'Westchester, NY',
-  termsVersion: '2026-01-draft',
+  termsVersion: '2026-11-24',
   /** Spots a confirmed referral moves you up. */
   referralBoostSpots: 3,
   /** Max mold photos per order. */

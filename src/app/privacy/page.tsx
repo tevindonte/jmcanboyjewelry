@@ -24,6 +24,10 @@ export default function PrivacyPage() {
         <h2 className="mt-10 font-display text-xl text-silver-bright">What we collect</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-text-muted">
           <li>Name, email, phone (optional), and shipping address for kits</li>
+          <li>
+            Your name and shipping address, used to send your kit and to create a prepaid return
+            label
+          </li>
           <li>Design JSON from the builder</li>
           <li>Payment status via Stripe (we never store card numbers)</li>
           <li>Mold photos you upload (private storage, admin-only signed links)</li>
@@ -33,6 +37,15 @@ export default function PrivacyPage() {
           </li>
           <li>Order events and messages needed to fulfill the job</li>
         </ul>
+
+        <h2 className="mt-10 font-display text-xl text-silver-bright">Who we share with</h2>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          We share only what is needed to run your order: our payment processor (Stripe, including
+          Cash App Pay); carriers and shipping-label services (to deliver your kit and return your
+          impression); our email provider (order emails); and our hosting and storage providers. If
+          we have your kit shipped directly to you, the retailer and carrier receive your name and
+          shipping address. We don&apos;t sell your data or use it for ads.
+        </p>
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Mold photos</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
@@ -45,6 +58,12 @@ export default function PrivacyPage() {
           If you upload a dentist 3D scan, it is stored in a private bucket (API key only, no
           public read). Used only to make your piece. You can delete it from your order link, or
           email us to request deletion. Admins download via short-lived signed links.
+        </p>
+
+        <h2 className="mt-10 font-display text-xl text-silver-bright">Physical molds</h2>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          We keep your physical impression and stone model while your order is open and for
+          remakes. Email us and we&apos;ll destroy them.
         </p>
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Deletion</h2>
@@ -67,6 +86,8 @@ export default function PrivacyPage() {
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
           This is cosmetic jewelry. We do not provide dental or medical services or advice.
         </p>
+
+        <p className="mt-10 text-xs text-steel">Last updated November 24, 2026.</p>
       </main>
       <SiteFooter />
     </>

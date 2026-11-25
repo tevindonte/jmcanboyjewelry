@@ -26,15 +26,19 @@ const FAQ = [
   },
   {
     q: 'What about gold, platinum, plating, or stones?',
-    a: 'Sterling silver is ready to order online. Gold and platinum are quoted per order (price depends on metal weight — we email a quote after you save a design; metal cost is handled in that quote). Gold plating and stones (diamond, CZ, moissanite, etc.) are upon request — ask and we follow up; no online price for those.',
+    a: 'Sterling silver is ready to order online. Gold and platinum are quoted per order (price depends on metal weight — we email a quote after you save a design; metal cost is paid upfront). Gold plating and stones (diamond, CZ, moissanite, etc.) are upon request only — ask and we follow up; no online price for those.',
   },
   {
     q: 'How does ordering work?',
-    a: `Build your set online, pay the silver deposit at checkout, then send your mold. We mail an impression kit with return instructions (or you skip the kit with a dentist 3D scan, or come in locally in ${siteConfig.location}). We cast and finish from that mold. Remaining grill balance is due before it ships.`,
+    a: `Build your set online, pay the silver deposit at checkout, then send your mold. We mail an impression kit (or you skip the kit with a dentist 3D scan, or come in locally in ${siteConfig.location}). We cast and finish from that mold. The remaining grill balance is due before your piece ships.`,
   },
   {
     q: 'How does the deposit and kit fee work?',
-    a: `Silver: ${pricing.depositPercent}% of the grill, plus $${pricing.kitFee} in that deposit if we mail a kit (kit is on top of the grill, not credited). Example — top 6 plain ($${6 * (pricing.perTooth.plain ?? 50)}) with a kit: deposit $${150 + (pricing.kitFee ?? 35)} ($${150} + $${pricing.kitFee}), balance $150. Local impression or dentist scan: no kit fee. Gold/platinum payment terms come with the quote. See Terms for when the deposit / kit fee become non-refundable.`,
+    a: `Silver: ${pricing.depositPercent}% of the grill, plus $${pricing.kitFee} in that deposit if we mail a kit (kit is charged on top of the grill, not credited). Example — top 6 plain ($${6 * (pricing.perTooth.plain ?? 50)}) with a kit: deposit $${150 + (pricing.kitFee ?? 35)} ($${150} + $${pricing.kitFee}), balance $150. Dentist scan or local impression: no kit fee. Gold and platinum payment terms come with the quote. See Terms for when the deposit / kit fee become non-refundable.`,
+  },
+  {
+    q: 'How does the mail kit and return label work?',
+    a: `The kit is $${pricing.kitFee}, charged on top of the grill (not credited). The kit and the prepaid return label can arrive separately: the label is emailed as a PDF, or as a QR code the Post Office can print if you have no printer. Put the impression in the kit's box or a padded envelope, stick on the label, drop it off at USPS — you don't pay to ship it back. Mail it back within a day or two of taking the impression. Dentist scan or local impression means no kit fee.`,
   },
   {
     q: 'Do I need a dentist?',
@@ -46,11 +50,11 @@ const FAQ = [
   },
   {
     q: 'Can I eat or sleep in them?',
-    a: 'No. Take them out to eat and sleep. Clean with warm soapy water and a soft toothbrush; shine with a silver polishing cloth. Sterling can tarnish over time. More on the care page.',
+    a: 'No. Take them out to eat and sleep. Clean with warm soapy water and a soft toothbrush; shine with a silver polishing cloth. Sterling can tarnish over time. Gold and platinum do not tarnish like sterling — same gentle cleaning, same out-for-meals-and-sleep rule. More on the care page.',
   },
   {
-    q: 'What if it does not fit?',
-    a: `Email ${siteConfig.contactEmail}. Fit comes from your impression — if something is off, we will take care of it. Do not guess remake or refund rules from chat; ask us on your order.`,
+    q: 'What if the impression or piece has a problem?',
+    a: `If your impression is unusable, we'll tell you why and send one replacement kit with no second kit fee (extra replacement kits are $${pricing.kitFee} each). If a finished sterling silver piece doesn't fit because of our work, we'll adjust or remake it once at no charge. If the problem is from an unusable or rushed impression, a remake is quoted separately. Gold and platinum remakes are not free unless your quote says so. Email ${siteConfig.contactEmail} on your order.`,
   },
 ];
 

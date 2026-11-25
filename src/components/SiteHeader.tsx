@@ -24,6 +24,9 @@ export function SiteHeader() {
           <Link href="/care" className="hover:text-silver-bright transition-colors">
             Care
           </Link>
+          <Link href="/contact" className="hover:text-silver-bright transition-colors">
+            Contact
+          </Link>
         </nav>
       </div>
     </header>

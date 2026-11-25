@@ -27,7 +27,8 @@ export default function AccessibilityPage() {
           <li>Color contrast tuned for body and UI text on our dark theme</li>
           <li>Respect for prefers-reduced-motion on decorative and 3D auto-rotation</li>
           <li>
-            Live text summary of the 3D style preview (arch, metal, selected teeth, estimate)
+            Live text summary of the 3D style preview (arch, metal, selected teeth, and the silver
+            price estimate)
           </li>
           <li>Form errors announced and focus moved to the problem field or error summary</li>
           <li>FAQ controls expose expanded/collapsed state to assistive technology</li>
@@ -76,7 +77,7 @@ export default function AccessibilityPage() {
         </p>
 
         <p className="mt-10 text-xs text-steel">
-          This statement was last updated November 11, 2026. Related:{' '}
+          This statement was last updated November 24, 2026. Related:{' '}
           <Link href="/privacy" className="text-silver underline">
             Privacy
           </Link>

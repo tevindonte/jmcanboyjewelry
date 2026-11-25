@@ -32,24 +32,56 @@ export default function TermsPage() {
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
           Mailed kits add a ${pricing.kitFee ?? 35} kit fee inside your deposit, charged on top of
           the grill price (not credited). That kit fee is non-refundable once the kit ships. Local
-          impressions in {siteConfig.location} pay no kit fee.
+          impressions in {siteConfig.location} pay no kit fee. Dentist scans also pay no kit fee.
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-steel">
-          {/* TODO(owner): exact refund rule if the mold is unusable */}
-          If your mold comes back unusable: refund / remake policy is TODO(owner). Ask before
-          launch.
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          The remaining balance is due before your piece ships.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          If your impression is unusable, we&apos;ll tell you why and send one replacement kit with
+          no second kit fee. Additional replacement kits are $35 each. If a finished sterling
+          silver piece doesn&apos;t fit because of our work, we&apos;ll adjust or remake it once at
+          no charge. If the problem is from an unusable or rushed impression, a remake is quoted
+          separately.
+        </p>
+
+        <h2 className="mt-10 font-display text-xl text-silver-bright">
+          Refunds &amp; cancellations
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          Every piece is custom made to your impression, so finished pieces are final sale and
+          can&apos;t be returned for a refund. If it doesn&apos;t fit because of our work, we&apos;ll
+          adjust or remake it once, as described above.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          Cancelling before design starts and before the kit ships: full refund. After that, the
+          deposit and kit fee are non-refundable as described above.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          If we can&apos;t make your piece, we&apos;ll refund what you paid for anything we
+          haven&apos;t delivered.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          The remaining balance is due before your piece ships. It is refundable only if we cancel
+          the order.
+        </p>
+
+        <h2 className="mt-10 font-display text-xl text-silver-bright">
+          Gold, platinum, plating and stones
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-text-muted">
+          These are quoted per order. Metal cost is paid upfront. Once casting starts the metal
+          cost is non-refundable, and remakes in gold or platinum are not free unless your quote
+          says so. Plating and stones are available on request only.
         </p>
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Early clients &amp; media</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
           I&apos;m early in production. Expect a fit check and possible small adjustments. If it
-          doesn&apos;t fit, I&apos;ll adjust or remake it. Any early-client discount is conditional
-          on agreeing that I may film and post your impression, fit, and results. To revoke consent
-          for <em>future</em> posts, email {siteConfig.contactEmail}. Posts already up may stay.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-steel">
-          {/* TODO(owner): exact remake policy */}
-          Exact remake policy (how many remakes, who pays shipping, timelines) is TODO(owner).
+          doesn&apos;t fit, I&apos;ll adjust or remake it per the policy above. Any early-client
+          discount is conditional on agreeing that I may film and post your impression, fit, and
+          results. To revoke consent for <em>future</em> posts, email {siteConfig.contactEmail}.
+          Posts already up may stay.
         </p>
 
         <h2 className="mt-10 font-display text-xl text-silver-bright">Turnaround</h2>

@@ -38,6 +38,11 @@ export default function CarePage() {
             <strong className="text-silver-bright">Store dry.</strong> Soft pouch or cloth, away
             from humidity when you&apos;re not wearing them.
           </li>
+          <li>
+            <strong className="text-silver-bright">Gold and platinum.</strong> Gold and platinum
+            pieces don&apos;t tarnish like sterling. Same gentle cleaning, same rule: out for meals
+            and sleep.
+          </li>
         </ul>
       </main>
       <SiteFooter />

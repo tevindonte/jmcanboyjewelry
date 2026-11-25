@@ -57,6 +57,13 @@ export const waitlistSchema = z.object({
   honeypot: z.string().max(0).optional().or(z.literal('')),
 });
 
+export const contactSchema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email().max(254),
+  message: z.string().min(8).max(4000),
+  honeypot: z.string().max(0).optional().or(z.literal('')),
+});
+
 /** Appwrite row/document IDs (not always UUID-shaped). */
 export const appwriteIdSchema = z
   .string()

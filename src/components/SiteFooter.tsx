@@ -44,6 +44,9 @@ export function SiteFooter() {
           <Link href="/care" className="hover:text-silver">
             Care
           </Link>
+          <Link href="/contact" className="hover:text-silver">
+            Contact
+          </Link>
           <Link href="/terms" className="hover:text-silver">
             Terms
           </Link>

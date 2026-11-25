@@ -16,8 +16,7 @@ export function SiteFooter() {
             {siteConfig.brandName}
           </p>
           <p className="mt-2 max-w-xs text-sm text-text-muted">
-            Custom grillz. Silver ready to order. Gold, platinum, and plating on request.{' '}
-            {siteConfig.location}.
+            {siteConfig.tagline} {siteConfig.location}.
           </p>
           <p className="mt-3 space-y-1 text-sm text-text-muted">
             <a

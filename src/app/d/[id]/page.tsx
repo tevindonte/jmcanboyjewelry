@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { getSettings, getFoundingSlotsRemaining, resolvePublicTier } from '@/lib/settings';
+import { getSettings, resolvePublicTier } from '@/lib/settings';
 import { calculateEstimate, formatCents, type TeethMap } from '@/lib/pricing';
 import {
   normalizeMetalId,
@@ -28,7 +28,6 @@ export default async function DesignSharePage({
   const teeth = JSON.parse(String(design.teeth_json ?? '{}')) as TeethMap;
   const metal = normalizeMetalId(design.metal);
   const settings = await getSettings();
-  const founding = await getFoundingSlotsRemaining();
   const tier = await resolvePublicTier();
   const estimate = calculateEstimate({
     arch: design.arch as ArchChoice,
@@ -47,7 +46,7 @@ export default async function DesignSharePage({
       ? { href: `/build`, label: 'Build yours' }
       : {
           href: `/checkout?design=${design.$id}&email=${encodeURIComponent(String(design.email || ''))}`,
-          label: 'Reserve this design',
+          label: 'Continue to deposit',
         };
 
   const metalLabel = pricing.metals[metal].label;
@@ -73,19 +72,16 @@ export default async function DesignSharePage({
           ) : estimate.priced ? (
             formatCents(estimate.totalCents)
           ) : (
-            'Price on request'
-          )}
-          {founding.remaining > 0 && !quoteOnly && (
-            <span className="ml-2 text-xs text-steel">
-              ({founding.remaining} of {founding.total} founding left)
-            </span>
+            'Quoted per order'
           )}
         </p>
         {quoteOnly && (
           <p className="mt-2 text-sm text-steel">
             {custom?.enabled
               ? 'Custom request — quoted per order.'
-              : `${pricing.metals[metal].shortLabel} is quoted per order — not dental gold, not permanent. Stones on request.`}{' '}
+              : metal === 'plating'
+                ? 'Gold plating is upon request — save your design and we will email a price. Stones upon request.'
+                : `${pricing.metals[metal].shortLabel} is quoted per order — not dental gold, not permanent. Plating and stones upon request.`}{' '}
             Save from the builder and we will email a price.
           </p>
         )}

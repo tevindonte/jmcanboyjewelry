@@ -40,11 +40,11 @@ export default function TermsPage() {
           launch.
         </p>
 
-        <h2 className="mt-10 font-display text-xl text-silver-bright">Founding clients</h2>
+        <h2 className="mt-10 font-display text-xl text-silver-bright">Early clients &amp; media</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-muted">
           I&apos;m early in production. Expect a fit check and possible small adjustments. If it
-          doesn&apos;t fit, I&apos;ll adjust or remake it. The founding discount is conditional on
-          agreeing that I may film and post your impression, fit, and results. To revoke consent
+          doesn&apos;t fit, I&apos;ll adjust or remake it. Any early-client discount is conditional
+          on agreeing that I may film and post your impression, fit, and results. To revoke consent
           for <em>future</em> posts, email {siteConfig.contactEmail}. Posts already up may stay.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-steel">

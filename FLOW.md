@@ -20,7 +20,7 @@
 |---|---|
 | 1 | `/build` — pick teeth / metal |
 | 2 | Enter email → **Save & get link** |
-| 3 | Click **Reserve your slot** |
+| 3 | Click **Continue to deposit** |
 | 4 | `/checkout` — name, email again, phone, fulfillment, shipping (if kit), terms, founding consent |
 | 5 | Stripe Checkout → pay deposit |
 | 6 | Order link (mold / scan / shipping follow-up) |
@@ -46,12 +46,12 @@
 | # | Step |
 |---|---|
 | 1 | `/build` — pick teeth / metal |
-| 2 | Enter email → **Reserve your slot** (saves design, opens checkout once) |
-| 3 | `/checkout` — email prefilled; name; fulfillment; terms (+ founding consent). No shipping yet. |
+| 2 | Enter email → **Continue to deposit** (saves design, opens checkout once) |
+| 3 | `/checkout` — email prefilled; name; fulfillment; terms (+ early-client consent if discount applies). No shipping yet. |
 | 4 | Stripe → pay deposit |
 | 5 | Order email / `/order/{token}` — mold photos, dentist scan, kit shipping address |
 
-**Clicks / forms:** **3** to payment (design → reserve → pay). Email once. Shipping / mold / scan after pay.
+**Clicks / forms:** **3** to payment (design → deposit → pay). Email once. Shipping / mold / scan after pay.
 
 ### Friends (public stays waitlist)
 

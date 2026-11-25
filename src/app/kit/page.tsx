@@ -29,16 +29,18 @@ export default function KitPage() {
       <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-16 outline-none">
         <h1 className="font-display text-3xl font-bold text-silver-bright">Impression kit</h1>
         <p className="mt-3 text-text-muted">
-          Mail kit for customers outside New Rochelle. Local clients can skip this and get an
-          in-person impression instead.
+          Mail kit for customers outside {siteConfig.location}. Local clients can skip this and get
+          an in-person impression instead.
         </p>
         <p className="mt-2 text-sm text-steel">
           Kit fee:{' '}
-          {pricing.kitFee != null ? formatUsd(pricing.kitFee) : 'Price on request'}
-          {pricing.kitCreditedToBalance
-            ? '. Charged in your deposit on top of the grill price (not credited). Non-refundable once the kit ships.'
-            : ''}{' '}
-          Local pickups: no kit fee.
+          {pricing.kitFee != null ? formatUsd(pricing.kitFee) : 'Quoted per order'}
+          {pricing.kitFee != null
+            ? pricing.kitCreditedToBalance
+              ? '. Charged in your deposit, credited so your total stays the grill price. Non-refundable once the kit ships.'
+              : '. Charged in your deposit on top of the grill price (not credited). Non-refundable once the kit ships.'
+            : '.'}{' '}
+          Local impressions: no kit fee.
         </p>
 
         <h2 className="mt-12 font-display text-xl text-silver-bright">What&apos;s in the kit</h2>

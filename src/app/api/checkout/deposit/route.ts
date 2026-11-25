@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          'Founding pricing requires consent to film/post your impression, fit, and results.',
+          'This discount requires consent to film/post your impression, fit, and results.',
       },
       { status: 400 },
     );
@@ -167,10 +167,7 @@ export async function POST(request: Request) {
             unit_amount: estimate.depositCents,
             product_data: {
               name: 'JMCANBOY Jewelry deposit',
-              description:
-                tier === 'founding'
-                  ? 'Founding client deposit for custom sterling grill'
-                  : 'Deposit for custom sterling grill',
+              description: 'Deposit for custom sterling grill',
             },
           },
         },

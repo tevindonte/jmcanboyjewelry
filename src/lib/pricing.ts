@@ -246,7 +246,7 @@ function unpricedResult(
     totalCents: null,
     depositCents: null,
     balanceCents: null,
-    displayLabel: quoteOnly ? 'Quoted per order' : 'Price on request',
+    displayLabel: 'Quoted per order',
     priceSnapshot: null,
     ...partial,
     metalId,
@@ -394,7 +394,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
 
   const platingFeeCents = usdToCents(plateUsd * selectedToothCount);
 
-  // Empty design: show $0 (not "Price on request")
+  // Empty design: show $0 (not "Quoted per order")
   if (!missingUnit && selectedToothCount === 0) {
     return {
       priced: true,
@@ -547,7 +547,7 @@ export function calculateEstimate(input: EstimateInput): EstimateResult {
 }
 
 export function formatCents(cents: number | null | undefined, currency = 'usd'): string {
-  if (cents === null || cents === undefined) return 'Price on request';
+  if (cents === null || cents === undefined) return 'Quoted per order';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency.toUpperCase(),

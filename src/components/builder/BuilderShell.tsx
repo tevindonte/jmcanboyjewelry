@@ -9,7 +9,7 @@ import { SaveDesignPanel } from './SaveDesignPanel';
 import { DesignA11ySummary } from './DesignA11ySummary';
 import { useBuilderStore } from '@/store/builder-store';
 import { calculateEstimate } from '@/lib/pricing';
-import type { SiteMode } from '@/lib/site.config';
+import { siteConfig, type SiteMode } from '@/lib/site.config';
 import type { OrderTier } from '@/lib/pricing.config';
 
 const GrillCanvas = dynamic(
@@ -30,21 +30,16 @@ const GrillCanvas = dynamic(
 export function BuilderShell({
   siteMode,
   foundingRemaining,
-  foundingTotal,
   appliedSpot,
 }: {
   siteMode: SiteMode;
   foundingRemaining: number;
-  foundingTotal: number;
+  foundingTotal?: number;
   appliedSpot: number;
 }) {
   const [webglFailed, setWebglFailed] = useState(false);
   const onFallback = useCallback(() => setWebglFailed(true), []);
   const tier: OrderTier = foundingRemaining > 0 ? 'founding' : 'standard';
-  const foundingLabel =
-    foundingRemaining > 0
-      ? `${foundingRemaining} of ${foundingTotal} founding slots left`
-      : '';
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
   const teeth = useBuilderStore((s) => s.teeth);
@@ -97,15 +92,11 @@ export function BuilderShell({
       </div>
 
       <div className="min-w-0 space-y-6">
-        <BuilderControls
-          tier={tier}
-          foundingLabel={foundingLabel}
-          appliedSpot={appliedSpot}
-        />
-        <SaveDesignPanel siteMode={siteMode} tier={tier} />
+        <BuilderControls tier={tier} appliedSpot={appliedSpot} />
+        <SaveDesignPanel siteMode={siteMode} />
         <p className="text-sm text-text-muted">
-          Local in <span className="text-silver">New Rochelle, NY</span>? You can skip the mail kit
-          and get your impression in person. Choose that at checkout.{' '}
+          Local in <span className="text-silver">{siteConfig.location}</span>? You can skip the
+          mail kit and get your impression in person. Choose that at checkout.{' '}
           <Link href="/kit" className="text-silver underline-offset-2 hover:underline">
             See the kit
           </Link>

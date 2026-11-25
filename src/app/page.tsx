@@ -3,15 +3,14 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { HeroGrill } from '@/components/HeroGrill';
 import { FaqAccordion } from '@/components/FaqAccordion';
-import { getFoundingSlotsRemaining, getSettings } from '@/lib/settings';
 import { siteConfig } from '@/lib/site.config';
 import { pricing } from '@/lib/pricing.config';
 
 const STEPS = [
-  { title: 'Impression', body: 'Mail kit or in-person in New Rochelle.' },
+  { title: 'Impression', body: 'Mail kit or in-person in Westchester.' },
   { title: 'Scan', body: 'Your mold becomes the fit source of truth.' },
   { title: 'Print', body: 'Resin model of your design on your arch.' },
-  { title: 'Cast', body: 'Sterling silver ready to order; gold / platinum / plating quoted.' },
+  { title: 'Cast', body: 'Sterling silver ready to order; other metals quoted.' },
   { title: 'Polish', body: 'Brushed or polished finish, cleaned up.' },
   { title: 'Ship', body: 'Out the door with a care card.' },
 ];
@@ -23,11 +22,7 @@ const FAQ = [
   },
   {
     q: 'What metals do you offer?',
-    a: 'Sterling silver is ready to order online. Gold, platinum, and gold plating are available on request (quoted per order). Diamonds, CZ, moissanite, and other stones can be added on request.',
-  },
-  {
-    q: 'What are founding clients?',
-    a: `I'm early in production. The first ${pricing.founding.slots} paying clients get ${pricing.founding.discountPercent}% off and an honest fit-check process. Expect possible small adjustments. Founding discount needs a plain-language OK to film/post your process. You can revoke for future posts.`,
+    a: 'Sterling silver is ready to order online. Gold and platinum are quoted per order (email after you save a design). Gold plating and stones (diamond, CZ, moissanite, etc.) are upon request.',
   },
   {
     q: 'How does the deposit work?',
@@ -43,19 +38,11 @@ const FAQ = [
   },
   {
     q: 'How long does it take?',
-    a: 'Turnaround is an estimate, not a guarantee. Production is still getting dialed in. Founding clients get that honesty upfront.',
+    a: 'Turnaround is an estimate, not a guarantee. Production is still getting dialed in.',
   },
 ];
 
 export default async function HomePage() {
-  const settings = await getSettings();
-  const founding = await getFoundingSlotsRemaining();
-
-  const cta =
-    settings.site_mode === 'closed'
-      ? { href: '/build', label: 'Build a design' }
-      : { href: '/build', label: 'Reserve your slot' };
-
   return (
     <>
       <SiteHeader />
@@ -79,37 +66,20 @@ export default async function HomePage() {
                 Custom grillz
               </h1>
               <p className="mt-2 text-sm font-medium tracking-wide text-silver">
-                Silver ready to order. Gold, platinum, and plating on request.
+                Sterling silver ready to order. Gold and platinum by quote.
               </p>
               <p className="mt-4 max-w-md text-base text-text-muted sm:text-lg">
                 Pick your teeth. Pay a deposit on silver. Send your mold. Removable jewelry
-                only — stones on request.
+                only — plating and stones upon request.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
-                  href={cta.href}
-                  className="rounded-md bg-silver-bright px-6 py-3 text-sm font-semibold text-bg hover:bg-silver"
-                >
-                  {cta.label}
-                </Link>
-                <Link
                   href="/build"
-                  className="rounded-md border border-border px-6 py-3 text-sm text-silver hover:border-silver"
+                  className="rounded-md bg-silver-bright px-6 py-3 text-sm font-semibold text-bg hover:bg-silver"
                 >
                   Open builder
                 </Link>
               </div>
-              {pricing.founding.enabled && founding.remaining > 0 && (
-                <p className="mt-6 text-sm text-steel">
-                  Founding slots:{' '}
-                  <span className="text-silver-bright">
-                    {founding.remaining} of {founding.total} left
-                  </span>
-                  <span className="block text-xs text-steel-dim">
-                    Soft pricing for early clients, locked for these {founding.total} only.
-                  </span>
-                </p>
-              )}
             </div>
             <div className="order-2 relative isolate flex h-[min(88vw,520px)] min-h-[360px] w-full min-w-0 items-center justify-center self-center bg-transparent pb-4 lg:h-[min(68vh,620px)] lg:max-h-[calc(100dvh-8rem)] lg:pb-0">
               <HeroGrill />

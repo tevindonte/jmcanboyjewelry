@@ -78,7 +78,7 @@ export function CheckoutForm({
       return;
     }
     if (foundingAvailable && !mediaConsent) {
-      setError('Founding price needs the filming/posting consent checkbox.');
+      setError('This discount needs the filming/posting consent checkbox.');
       setErrorField('media');
       return;
     }
@@ -116,9 +116,8 @@ export function CheckoutForm({
     <form onSubmit={submit} className="space-y-4" noValidate>
       {foundingAvailable && (
         <div className="rounded-md border border-border bg-bg-elevated p-3 text-sm text-text-muted">
-          Founding client: {pricing.founding.discountPercent}% off. I&apos;m early in production,
-          so expect a fit check. Founding prices are locked for the first{' '}
-          {pricing.founding.slots} paying clients only.
+          Early-client discount: {pricing.founding.discountPercent}% off. Production is still
+          getting dialed in, so expect a fit check.
         </div>
       )}
 
@@ -258,7 +257,7 @@ export function CheckoutForm({
             required
           />
           <span>
-            Founding discount: I agree you may film and post my impression, fit, and results
+            Discount: I agree you may film and post my impression, fit, and results
             (TikTok/IG/etc). I can revoke consent for future posts by emailing{' '}
             {siteConfig.contactEmail}. Past posts already up may stay.
           </span>

@@ -15,13 +15,7 @@ function shareUrl(id: string) {
   return `${window.location.origin}/d/${id}`;
 }
 
-export function SaveDesignPanel({
-  siteMode,
-  tier,
-}: {
-  siteMode: SiteMode;
-  tier: 'founding' | 'friend' | 'standard';
-}) {
+export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
   const router = useRouter();
   const arch = useBuilderStore((s) => s.arch);
   const metal = useBuilderStore((s) => s.metal);
@@ -106,12 +100,12 @@ export function SaveDesignPanel({
     ? 'Save & request quote'
     : siteMode === 'closed'
       ? 'Save design'
-      : 'Reserve your slot';
+      : 'Continue to deposit';
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-bg-elevated p-4">
       <h2 className="font-display text-lg text-silver-bright">
-        {quoteOnly ? 'Request a quote' : 'Reserve'}
+        {quoteOnly ? 'Request a quote' : 'Checkout'}
       </h2>
 
       {!done ? (
@@ -167,11 +161,6 @@ export function SaveDesignPanel({
           >
             {loading ? 'Working…' : primaryLabel}
           </button>
-          {tier === 'founding' && !quoteOnly && accepting && (
-            <p className="text-xs text-text-muted">
-              Founding client pricing still open. Softer rate while production gets dialed in.
-            </p>
-          )}
         </>
       ) : (
         <>

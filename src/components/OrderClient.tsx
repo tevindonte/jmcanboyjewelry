@@ -245,7 +245,7 @@ export function OrderClient({ token }: { token: string }) {
           {order.status.replace(/_/g, ' ')}
         </p>
         {order.tier === 'founding' && (
-          <p className="mt-2 text-xs text-steel">Founding client. Fit check included.</p>
+          <p className="mt-2 text-xs text-steel">Early client. Fit check included.</p>
         )}
         {order.tier === 'friend' && (
           <p className="mt-2 text-xs text-steel">Friend / custom order.</p>

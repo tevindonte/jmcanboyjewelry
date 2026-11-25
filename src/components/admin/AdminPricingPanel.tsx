@@ -137,8 +137,8 @@ export function AdminPricingPanel() {
       </dl>
 
       <p className="mt-2 text-xs text-steel">
-        Min order {formatUsd(data.minimumOrder)} · Kit fee {formatUsd(data.kitFee)} (credited;
-        mail only) · API provider:{' '}
+        Min order {formatUsd(data.minimumOrder)} · Kit fee {formatUsd(data.kitFee)} (not
+        credited; mail only) · API provider:{' '}
         {data.providerConfigured ? 'configured' : 'off (manual is fine)'}
       </p>
 

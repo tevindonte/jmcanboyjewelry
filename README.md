@@ -49,7 +49,7 @@ Free web services **sleep when idle** — first hit after sleep is slow. No cron
 
 ## Confirmed pricing
 
-$50 / $55 / $60 · founding 5 @ 15% · min $150 · kit $30 (credited) · spot ref $61.19
+$50 / $55 / $60 · min $150 · kit $35 (not credited) · spot ref $40.68 · gold/platinum by quote
 
 ## Scripts
 

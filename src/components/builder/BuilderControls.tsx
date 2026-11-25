@@ -91,11 +91,10 @@ function StyleIcon({ style }: { style: Exclude<ToothStyle, 'none'> }) {
 
 export function BuilderControls({
   tier,
-  foundingLabel,
   appliedSpot,
 }: {
   tier: OrderTier;
-  foundingLabel: string;
+  foundingLabel?: string;
   appliedSpot: number;
 }) {
   const arch = useBuilderStore((s) => s.arch);
@@ -207,8 +206,8 @@ export function BuilderControls({
           })}
         </div>
         <p className="mt-2 text-xs text-steel">
-          Removable jewelry only — not dental gold, not permanent. Diamonds, CZ, moissanite,
-          and other stones available on request.
+          Removable jewelry only — not dental gold, not permanent. Gold and platinum by quote.
+          Plating and stones (diamond, CZ, moissanite, etc.) upon request.
         </p>
       </fieldset>
 
@@ -352,7 +351,9 @@ export function BuilderControls({
             <p className="mt-2 text-sm leading-relaxed text-steel">
               {customRequest
                 ? 'Custom request — save your notes and we will email a price.'
-                : `${pricing.metals[metal].shortLabel} is quoted per order. Save your design and we will email a price. Stones (diamond, CZ, moissanite, etc.) on request.`}
+                : metal === 'plating'
+                  ? 'Gold plating is upon request. Save your design and we will email a price. Stones upon request.'
+                  : `${pricing.metals[metal].shortLabel} is quoted per order. Save your design and we will email a price. Plating and stones upon request.`}
             </p>
           </>
         ) : empty ? (
@@ -360,9 +361,6 @@ export function BuilderControls({
             <p className="font-display text-xl text-silver-bright">{formatCents(0)}</p>
             <p className="mt-1 text-xs text-steel-dim">
               Add teeth to see your total. Min order {minLabel}
-              {tier === 'founding' && pricing.founding.discountPercent != null
-                ? ` · ${pricing.founding.discountPercent}% founding off`
-                : ''}
               .
             </p>
           </>
@@ -381,7 +379,7 @@ export function BuilderControls({
                 estimate.foundingDiscountCents > 0 && (
                   <div className="flex justify-between gap-4">
                     <dt className="text-steel">
-                      Founding discount ({pricing.founding.discountPercent}%)
+                      Discount ({pricing.founding.discountPercent}%)
                     </dt>
                     <dd className="text-silver">
                       −{formatCents(estimate.foundingDiscountCents)}
@@ -419,7 +417,6 @@ export function BuilderControls({
 
             <p className="mt-2 text-xs text-steel-dim">
               Deposit {formatCents(estimate.depositCents)}
-              {tier === 'founding' ? ` · ${foundingLabel}` : ''}
             </p>
           </>
         )}

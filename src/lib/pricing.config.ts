@@ -57,8 +57,8 @@ export const pricing = {
   },
   /**
    * Customer metal choice.
-   * Silver: instant checkout. Gold / platinum / gold plating: quote on request.
-   * Not dental gold, not permanent dental work. Stones (diamond, CZ, moissanite, etc.) on request.
+   * Silver: instant checkout. Gold / platinum: quoted per order.
+   * Gold plating + stones: upon request. Not dental gold, not permanent.
    */
   metals: {
     silver: {
@@ -69,7 +69,7 @@ export const pricing = {
       label: 'Gold',
       shortLabel: 'Gold',
       quoteOnly: true as const,
-      hint: 'Jewelry gold · quote · not dental / not permanent',
+      hint: 'Quoted per order · not dental / not permanent',
     },
     platinum: {
       label: 'Platinum',

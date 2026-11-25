@@ -8,18 +8,23 @@ import Link from 'next/link';
 export const metadata = { title: 'Impression kit' };
 
 const CONTENTS = [
-  'Impression trays (sizes noted in kit)',
-  'Putty / material for one full set',
-  'Step card + link to the video below',
-  'Packaging to send your impression back',
+  'Upper and lower impression trays (Large by default, Medium available on request)',
+  'Two-part putty, one set for each arch (white and blue)',
+  'A link to our how-to video and a step card',
+  "A prepaid return label, emailed to you (PDF, or a QR code the Post Office prints if you don't have a printer). Your kit and your label can arrive separately.",
 ];
 
 const STEPS = [
-  'Wash hands. Read the card once before you start. Putty sets on a timer.',
-  'Mix/load trays exactly as shown in the video.',
-  'Bite centered, hold still for the full set time. Do not talk or chew.',
-  'Remove straight down/up. Check that teeth details show clean.',
-  'Photograph from 3 angles, then pack and ship back within a day or two.',
+  "Wash and dry your hands. Read all the steps once before you open anything. Do one arch at a time, upper first, so the putty doesn't set before you use it.",
+  "Open one pair of tubs. Knead the white and blue putty together with your fingers until it's one even color with no streaks. This takes about 30 seconds. Work quickly, it starts to set.",
+  'Roll it into a rope shape and press it evenly into the tray, edge to edge, so the whole tray is filled.',
+  "Center the tray over your teeth and press gently until the putty comes up around your teeth and the base of your gums. Don't bite down hard and don't chew. Hold still.",
+  "Wait about 2 to 3 minutes. A warm room sets faster. Don't talk or move the tray.",
+  'Remove it in one smooth motion: pull down for the upper, up for the lower.',
+  "Check it. Every tooth should show clear detail, with no gaps, bubbles, or bare spots where the tray touched. If it doesn't, don't mail it. Message us first.",
+  'Repeat for the other arch with the second pair of tubs.',
+  'Rinse gently under cool water and pat dry. Photograph each impression from 3 angles.',
+  "Put the impressions in the kit's box or a padded envelope, stick on the return label, and drop it off at USPS within a day or two.",
 ];
 
 export default function KitPage() {
@@ -46,17 +51,13 @@ export default function KitPage() {
             <li key={c}>{c}</li>
           ))}
         </ul>
-
-        <h2 className="mt-12 font-display text-xl text-silver-bright">Prepaid return label</h2>
-        <p className="mt-3 text-sm leading-relaxed text-text-muted">
-          The kit and the prepaid return label can arrive separately. We email the label as a PDF,
-          or as a QR code the Post Office can print if you have no printer. Put the impression in
-          the kit&apos;s box or a padded envelope, stick on the label, and drop it off at USPS —
-          you don&apos;t pay to ship it back. Mail it back within a day or two of taking the
-          impression.
+        <p className="mt-3 text-sm text-text-muted">
+          If anything in the box is different from this page, follow the steps on this page.
         </p>
 
-        <h2 className="mt-12 font-display text-xl text-silver-bright">How to take an impression</h2>
+        <h2 className="mt-12 font-display text-xl text-silver-bright">
+          How to take your impression
+        </h2>
         <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm text-text-muted">
           {STEPS.map((s) => (
             <li key={s}>{s}</li>

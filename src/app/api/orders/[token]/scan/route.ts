@@ -118,6 +118,22 @@ export async function POST(
       note: `Dentist scan uploaded: ${storedName} (${raw.byteLength} bytes)`,
     });
 
+    try {
+      const { notifyAdmin, adminOrderPath } = await import('@/lib/admin-notify');
+      await notifyAdmin({
+        eventType: 'mold_uploaded',
+        entityId: order.$id,
+        subject: `Dentist scan uploaded · ${order.name}`,
+        summaryLines: [
+          `Customer: ${order.name} <${order.email}>`,
+          `Dentist 3D scan uploaded (${storedName}, ${(raw.byteLength / (1024 * 1024)).toFixed(1)} MB). Download only from admin — no file URL in this email.`,
+        ],
+        linkPath: adminOrderPath(order.$id),
+      });
+    } catch (notifyErr) {
+      console.error('scan admin notify', notifyErr);
+    }
+
     if (prevId && prevId !== fileId) {
       await deleteStoredScan(prevId);
     }

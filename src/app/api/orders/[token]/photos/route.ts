@@ -94,6 +94,21 @@ export async function POST(
         type: 'mold_photos_pending',
         note: 'Customer uploaded mold photos',
       });
+      try {
+        const { notifyAdmin, adminOrderPath } = await import('@/lib/admin-notify');
+        await notifyAdmin({
+          eventType: 'mold_uploaded',
+          entityId: order.$id,
+          subject: `Mold photos uploaded · ${order.name}`,
+          summaryLines: [
+            `Customer: ${order.name} <${order.email}>`,
+            `Mold photos uploaded (${siteConfig.moldPhotoCount} max set). Review in admin — no photo URLs in this email.`,
+          ],
+          linkPath: adminOrderPath(order.$id),
+        });
+      } catch (notifyErr) {
+        console.error('mold photos admin notify', notifyErr);
+      }
     }
 
     return NextResponse.json({

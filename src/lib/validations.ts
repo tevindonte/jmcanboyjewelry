@@ -24,6 +24,8 @@ export const saveDesignSchema = z
       .refine((v) => !v || /^https?:\/\//i.test(v), {
         message: 'Reference must be a http(s) link',
       }),
+    /** Optional TikTok handle or phone for quote follow-up. */
+    quoteContact: z.string().max(80).optional().default(''),
     honeypot: z.string().max(0).optional().or(z.literal('')),
   })
   .superRefine((data, ctx) => {

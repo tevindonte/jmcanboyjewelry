@@ -92,6 +92,7 @@ const patchSchema = z.object({
       state: z.string().min(2).max(40),
       postal_code: z.string().min(3).max(20),
       country: z.string().length(2).default('US'),
+      tray_size: z.enum(['large', 'medium']),
     })
     .optional(),
 });
@@ -123,15 +124,36 @@ export async function PATCH(
   }
 
   if (parsed.data.shippingAddress) {
+    const addr = parsed.data.shippingAddress;
     await updateDoc(col.orders, order.$id, {
-      shipping_address_json: JSON.stringify(parsed.data.shippingAddress),
+      shipping_address_json: JSON.stringify(addr),
       fulfillment: 'kit_mail',
     });
     await createDoc(col.orderEvents, {
       order_id: order.$id,
       type: 'shipping_address',
-      note: 'Customer saved kit shipping address',
+      note: `Customer saved kit shipping address (tray ${addr.tray_size})`,
     });
+    try {
+      const {
+        notifyAdmin,
+        adminOrderPath,
+        traySizeLabel,
+      } = await import('@/lib/admin-notify');
+      await notifyAdmin({
+        eventType: 'kit_shipping',
+        entityId: order.$id,
+        subject: `Kit shipping address · ${order.name}`,
+        summaryLines: [
+          `Customer: ${order.name} <${order.email}>`,
+          `Address: ${addr.line1}, ${addr.city}, ${addr.state} ${addr.postal_code} ${addr.country}`,
+          `Tray size: ${traySizeLabel(addr.tray_size)}`,
+        ],
+        linkPath: adminOrderPath(order.$id),
+      });
+    } catch (e) {
+      console.error('kit shipping admin notify', e);
+    }
     return NextResponse.json({ ok: true, shipping: true });
   }
 

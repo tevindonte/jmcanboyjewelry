@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCents } from '@/lib/pricing';
+import { parseShippingAddressJson, traySizeLabel } from '@/lib/admin-notify';
 
 type Detail = {
   order: {
@@ -21,12 +22,18 @@ type Detail = {
     tracking_number: string | null;
     access_token: string;
     media_consent_at: string | null;
+    shipping_address_json?: string | null;
   };
   design: {
     arch: string;
     teeth: Record<string, string>;
     metal?: string;
-    custom?: { enabled: boolean; notes: string; referenceUrl: string } | null;
+    custom?: {
+      enabled: boolean;
+      notes: string;
+      referenceUrl: string;
+      contactHandle?: string;
+    } | null;
   } | null;
   events: { type: string; note: string | null; created_at: string }[];
   photos: {
@@ -176,6 +183,7 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
 
   if (!data) return <main className="p-8 text-text-muted">Loading…</main>;
   const { order, photos, scan, events, cost, marginCents } = data;
+  const shipping = parseShippingAddressJson(order.shipping_address_json);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -188,6 +196,18 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
         {order.metal || data.design?.metal || 'silver'}
         {data.design?.custom?.enabled ? ' · custom request' : ''}
       </p>
+      {shipping && (
+        <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">
+          <p className="text-xs tracking-wide text-steel uppercase">Kit shipping</p>
+          <p className="mt-2 text-text-muted">
+            {shipping.line1}
+            {shipping.line2 ? `, ${shipping.line2}` : ''}
+            <br />
+            {shipping.city}, {shipping.state} {shipping.postal_code} {shipping.country}
+          </p>
+          <p className="mt-2 text-silver">Tray: {traySizeLabel(shipping.tray_size)}</p>
+        </div>
+      )}
       {data.design?.custom?.enabled && (
         <div className="mt-4 rounded-md border border-border bg-bg-elevated p-4 text-sm">
           <p className="text-xs tracking-wide text-steel uppercase">Custom request</p>
@@ -204,7 +224,17 @@ export function AdminOrderDetail({ orderId }: { orderId: string }) {
               {data.design.custom.referenceUrl}
             </a>
           )}
+          {data.design.custom.contactHandle && (
+            <p className="mt-2 text-steel">
+              TikTok / phone: {data.design.custom.contactHandle}
+            </p>
+          )}
         </div>
+      )}
+      {!data.design?.custom?.enabled && data.design?.custom?.contactHandle && (
+        <p className="mt-2 text-sm text-steel">
+          TikTok / phone: {data.design.custom.contactHandle}
+        </p>
       )}
       <p className="mt-1 text-xs text-steel">
         Media consent:{' '}

@@ -24,6 +24,7 @@ export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
   const customNotes = useBuilderStore((s) => s.customNotes);
   const customReferenceUrl = useBuilderStore((s) => s.customReferenceUrl);
   const [email, setEmail] = useState('');
+  const [quoteContact, setQuoteContact] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
         customRequest,
         customNotes,
         customReferenceUrl,
+        quoteContact: quoteOnly ? quoteContact : '',
         honeypot,
       }),
     });
@@ -142,6 +144,20 @@ export function SaveDesignPanel({ siteMode }: { siteMode: SiteMode }) {
               autoComplete="email"
             />
           </label>
+          {quoteOnly && (
+            <label className="block text-sm text-text-muted">
+              TikTok handle or phone{' '}
+              <span className="text-steel">(optional)</span>
+              <input
+                type="text"
+                value={quoteContact}
+                onChange={(e) => setQuoteContact(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-text outline-none focus:border-silver"
+                autoComplete="tel"
+                maxLength={80}
+              />
+            </label>
+          )}
           <input
             type="text"
             name="company"

@@ -48,10 +48,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const quoteContact = (parsed.data.quoteContact ?? '').trim();
   const custom_json = serializeCustomJson({
     enabled: customRequest,
     notes: parsed.data.customNotes ?? '',
     referenceUrl: parsed.data.customReferenceUrl ?? '',
+    contactHandle: quoteContact,
   });
 
   const quoteOnly = customRequest || isQuoteOnlyMetal(metal) || estimate.quoteOnly;
@@ -67,9 +69,48 @@ export async function POST(request: Request) {
     });
 
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const designUrl = `${base}/d/${doc.$id}`;
+
+    if (quoteOnly) {
+      try {
+        const teethEntries = Object.entries(parsed.data.teeth)
+          .filter(([, s]) => s && s !== 'none')
+          .map(([id, s]) => `${id}:${s}`)
+          .sort();
+        const { notifyAdmin, designPublicPath } = await import('@/lib/admin-notify');
+        await notifyAdmin({
+          eventType: 'quote_request',
+          entityId: doc.$id,
+          subject: `Quote request · ${metal} · ${parsed.data.email}`,
+          summaryLines: [
+            `Customer email: ${parsed.data.email.toLowerCase()}`,
+            quoteContact ? `TikTok / phone: ${quoteContact}` : 'TikTok / phone: (none)',
+            `Metal: ${metal}`,
+            `Arch: ${parsed.data.arch}`,
+            `Teeth: ${teethEntries.length ? teethEntries.join(', ') : '(custom / none listed)'}`,
+            customRequest
+              ? `Custom notes: ${(parsed.data.customNotes ?? '').trim() || '(none)'}`
+              : 'Custom notes: (n/a)',
+            parsed.data.customReferenceUrl
+              ? `Reference: ${parsed.data.customReferenceUrl}`
+              : '',
+          ].filter(Boolean),
+          linkPath: designPublicPath(doc.$id),
+        });
+      } catch (e) {
+        console.error('quote admin notify', e);
+      }
+      try {
+        const { sendQuoteRequestAck } = await import('@/lib/email');
+        await sendQuoteRequestAck({ to: parsed.data.email.toLowerCase() });
+      } catch (e) {
+        console.error('quote customer ack', e);
+      }
+    }
+
     return NextResponse.json({
       id: doc.$id,
-      url: `${base}/d/${doc.$id}`,
+      url: designUrl,
       estimate_cents: quoteOnly ? null : estimate.totalCents,
       priced: quoteOnly ? false : estimate.priced,
       quoteOnly,

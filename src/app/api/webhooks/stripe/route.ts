@@ -67,6 +67,37 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error('confirmation email', e);
       }
+      try {
+        const {
+          notifyAdmin,
+          adminOrderPath,
+          fulfillmentLabel,
+          formatCentsPlain,
+        } = await import('@/lib/admin-notify');
+        const snap = order.price_snapshot_json
+          ? (JSON.parse(String(order.price_snapshot_json)) as {
+              kitFeeUsd?: number | null;
+            })
+          : null;
+        const kitFee =
+          order.fulfillment === 'kit_mail' && Number(snap?.kitFeeUsd ?? 0) > 0
+            ? 'yes'
+            : 'no';
+        await notifyAdmin({
+          eventType: 'deposit_paid',
+          entityId: orderId,
+          subject: `Deposit paid · ${order.name}`,
+          summaryLines: [
+            `Customer: ${order.name} <${order.email}>`,
+            `Amount: ${formatCentsPlain(Number(order.deposit_cents))}`,
+            `Fulfillment: ${fulfillmentLabel(String(order.fulfillment))}`,
+            `Kit fee: ${kitFee}`,
+          ],
+          linkPath: adminOrderPath(orderId),
+        });
+      } catch (e) {
+        console.error('deposit admin notify', e);
+      }
     }
 
     if (payType === 'balance') {
@@ -82,6 +113,25 @@ export async function POST(request: Request) {
         type: 'balance_paid',
         note: `Stripe session ${session.id}`,
       });
+      try {
+        const {
+          notifyAdmin,
+          adminOrderPath,
+          formatCentsPlain,
+        } = await import('@/lib/admin-notify');
+        await notifyAdmin({
+          eventType: 'balance_paid',
+          entityId: orderId,
+          subject: `Balance paid · ${order.name}`,
+          summaryLines: [
+            `Customer: ${order.name} <${order.email}>`,
+            `Balance: ${formatCentsPlain(Number(order.balance_cents))}`,
+          ],
+          linkPath: adminOrderPath(orderId),
+        });
+      } catch (e) {
+        console.error('balance admin notify', e);
+      }
     }
   }
 

@@ -71,6 +71,7 @@ export function OrderClient({ token }: { token: string }) {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [postal, setPostal] = useState('');
+  const [traySize, setTraySize] = useState<'large' | 'medium'>('large');
 
   async function load() {
     const res = await fetch(`/api/orders/${token}`);
@@ -103,6 +104,7 @@ export function OrderClient({ token }: { token: string }) {
             state,
             postal_code: postal,
             country: 'US',
+            tray_size: traySize,
           },
         }),
       });
@@ -324,6 +326,28 @@ export function OrderClient({ token }: { token: string }) {
               className="mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-sm text-text"
             />
           </label>
+          <fieldset className="space-y-2">
+            <legend className="text-sm text-text-muted">Tray size</legend>
+            <label className="flex min-h-11 items-center gap-2 text-sm text-text-muted">
+              <input
+                type="radio"
+                name="tray_size"
+                required
+                checked={traySize === 'large'}
+                onChange={() => setTraySize('large')}
+              />
+              Large (most adults, default)
+            </label>
+            <label className="flex min-h-11 items-center gap-2 text-sm text-text-muted">
+              <input
+                type="radio"
+                name="tray_size"
+                checked={traySize === 'medium'}
+                onChange={() => setTraySize('medium')}
+              />
+              Medium (smaller mouths)
+            </label>
+          </fieldset>
           <button
             type="submit"
             disabled={busy}

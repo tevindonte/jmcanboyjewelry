@@ -181,6 +181,37 @@ function escapeHtml(s: string) {
     .replace(/"/g, '&quot;');
 }
 
+export async function sendAdminNotifyEmail(opts: {
+  to: string;
+  subject: string;
+  text: string;
+}) {
+  const resend = getResend();
+  const html = `<pre style="font-family:system-ui,sans-serif;white-space:pre-wrap">${escapeHtml(opts.text)}</pre>`;
+  await resend.emails.send({
+    from: fromAddress(),
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    html,
+  });
+}
+
+export async function sendQuoteRequestAck(opts: { to: string; name?: string }) {
+  const resend = getResend();
+  const greeting = opts.name?.trim() ? `Hey ${escapeHtml(opts.name.trim())},` : 'Hey,';
+  await resend.emails.send({
+    from: fromAddress(),
+    to: opts.to,
+    subject: `Got your design · ${siteConfig.brandName}`,
+    html: `
+      <p>${greeting}</p>
+      <p>Got your design. I'll review it and email you a quote.</p>
+      <p>— ${escapeHtml(siteConfig.brandName)}</p>
+    `,
+  });
+}
+
 export async function sendContactMessage(opts: {
   name: string;
   email: string;

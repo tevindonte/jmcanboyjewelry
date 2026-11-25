@@ -30,8 +30,9 @@ export default function CarePage() {
             Pressure and grinding will wreck the fit and the finish.
           </li>
           <li>
-            <strong className="text-silver-bright">Clean gentle.</strong> Soft cloth. No bleach, no
-            toothpaste grind, no ultrasonic unless we say otherwise.
+            <strong className="text-silver-bright">Clean gentle.</strong> Warm soapy water and a
+            soft toothbrush, then shine with a silver polishing cloth. No bleach, no toothpaste
+            grind, no ultrasonic unless we say otherwise.
           </li>
           <li>
             <strong className="text-silver-bright">Store dry.</strong> Soft pouch or cloth, away

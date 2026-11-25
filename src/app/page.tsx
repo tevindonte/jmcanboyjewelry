@@ -17,28 +17,40 @@ const STEPS = [
 
 const FAQ = [
   {
-    q: 'Is this dental work?',
-    a: 'No. These are removable cosmetic jewelry pieces. Not a medical or dental product. We do not make dental gold or permanent dental work.',
+    q: 'What do you make?',
+    a: `Custom removable grillz in sterling silver (.925), made from your mold so they fit your teeth. Sold by the tooth — top, bottom, or both. Common sets: top 6, top 8, 6 on 6, 8 on 8. Gold and platinum are by quote. Hand-finished and polished. Not dental work, not permanent / fixed grills.`,
   },
   {
-    q: 'What metals do you offer?',
-    a: 'Sterling silver is ready to order online. Gold and platinum are quoted per order (email after you save a design). Gold plating and stones (diamond, CZ, moissanite, etc.) are upon request.',
+    q: 'What styles and silver prices?',
+    a: `Plain (full cap) $${pricing.perTooth.plain}/tooth. Window (open face with a rim) $${pricing.perTooth.window}/tooth. Deep cut (horizontal grooves) $${pricing.perTooth.deepcut}/tooth. Mix styles on one set — priced by tooth. Minimum order $${pricing.minimumOrder}. Other custom looks: save a custom request and we email a quote.`,
   },
   {
-    q: 'How does the deposit work?',
-    a: `For silver (priced online), you pay a ${pricing.depositPercent}% deposit on the grill plus the $${pricing.kitFee} kit fee in that deposit if we mail a kit (kit is charged on top of the grill, not credited). Rest of the grill is due when the piece is ready. Minimum order $${pricing.minimumOrder}. Quote metals are emailed separately. See Terms for when the deposit / kit fee become non-refundable.`,
+    q: 'What about gold, platinum, plating, or stones?',
+    a: 'Sterling silver is ready to order online. Gold and platinum are quoted per order (price depends on metal weight — we email a quote after you save a design; metal cost is handled in that quote). Gold plating and stones (diamond, CZ, moissanite, etc.) are upon request — ask and we follow up; no online price for those.',
+  },
+  {
+    q: 'How does ordering work?',
+    a: `Build your set online, pay the silver deposit at checkout, then send your mold. We mail an impression kit with return instructions (or you skip the kit with a dentist 3D scan, or come in locally in ${siteConfig.location}). We cast and finish from that mold. Remaining grill balance is due before it ships.`,
+  },
+  {
+    q: 'How does the deposit and kit fee work?',
+    a: `Silver: ${pricing.depositPercent}% of the grill, plus $${pricing.kitFee} in that deposit if we mail a kit (kit is on top of the grill, not credited). Example — top 6 plain ($${6 * (pricing.perTooth.plain ?? 50)}) with a kit: deposit $${150 + (pricing.kitFee ?? 35)} ($${150} + $${pricing.kitFee}), balance $150. Local impression or dentist scan: no kit fee. Gold/platinum payment terms come with the quote. See Terms for when the deposit / kit fee become non-refundable.`,
   },
   {
     q: 'Do I need a dentist?',
-    a: 'No. You take a home impression with the kit, or come in locally for an impression. Fit comes from that mold, not the 3D preview.',
-  },
-  {
-    q: 'Can I eat or sleep in them?',
-    a: 'No. Sterling tarnishes and grillz are not for eating or sleeping in. Wipe with a polishing cloth.',
+    a: 'No. Most people use the mail kit (how-to video included) or an in-person impression locally. A dentist scan (STL, OBJ, or PLY) also works and skips the kit. Fit comes from the mold or scan, not the 3D preview on the site.',
   },
   {
     q: 'How long does it take?',
-    a: 'Turnaround is an estimate, not a guarantee. Production is still getting dialed in.',
+    a: 'About 2 to 3 weeks from when the kit ships, depending on shipping both ways. That is an estimate, not a guarantee — no rush or event-date promises. If you have a date, tell us and we will say honestly whether it is realistic.',
+  },
+  {
+    q: 'Can I eat or sleep in them?',
+    a: 'No. Take them out to eat and sleep. Clean with warm soapy water and a soft toothbrush; shine with a silver polishing cloth. Sterling can tarnish over time. More on the care page.',
+  },
+  {
+    q: 'What if it does not fit?',
+    a: `Email ${siteConfig.contactEmail}. Fit comes from your impression — if something is off, we will take care of it. Do not guess remake or refund rules from chat; ask us on your order.`,
   },
 ];
 
